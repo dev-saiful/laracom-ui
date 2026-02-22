@@ -84,8 +84,9 @@ function CheckoutPage() {
       }
     },
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] })
-      queryClient.invalidateQueries({ queryKey: ['cart-count'] })
+      // Immediately clear stale cart data — avoids showing old items while refetch is in-flight
+      queryClient.removeQueries({ queryKey: ['cart'] })
+      queryClient.setQueryData(['cart-count'], 0)
       
       const orderId = res.data.data.id
       const orderNumber = res.data.data.order_number

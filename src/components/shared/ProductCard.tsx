@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { Tag, Rate, Typography, Button, Tooltip } from 'antd'
+import { Tag, Rate, Typography, Button, Tooltip, App } from 'antd'
 import { ShoppingCartOutlined, HeartOutlined, HeartFilled, EyeOutlined } from '@ant-design/icons'
 import { Link, useNavigate } from '@tanstack/react-router'
-import type { Product } from '@/types'
+import type { Product, WishlistItem, ApiResponse } from '@/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cartApi } from '@/api/cart'
 import { wishlistApi } from '@/api/wishlist'
 import { useAuthStore } from '@/store/auth'
-import { App } from 'antd'
 
 const { Text, Title } = Typography
 
@@ -23,15 +22,17 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
   const { isAuthenticated } = useAuthStore()
   const [imgError, setImgError] = useState(false)
 
-  // Check if product is in wishlist (only for authenticated users)
-  const { data: wishlistStatus } = useQuery({
-    queryKey: ['wishlist-check', product.id],
-    queryFn: () => wishlistApi.check(product.id).then((r) => r.data.data.in_wishlist),
+  // Derive wishlist status from the shared wishlist cache — no per-product API call
+  const { data: wishlistResp } = useQuery({
+    queryKey: ['wishlist'],
+    queryFn: () => wishlistApi.get().then((r) => r.data),
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000,
+    select: (data: ApiResponse<WishlistItem[]>) =>
+      data.data?.some((item) => item.product_id === product.id) ?? false,
   })
 
-  const isWishlisted = wishlistStatus ?? false
+  const isWishlisted = wishlistResp ?? false
 
   const addToCart = useMutation({
     mutationFn: () => cartApi.addItem({ product_id: product.id, quantity: 1 }),
@@ -48,9 +49,8 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
   const toggleWishlist = useMutation({
     mutationFn: () => isWishlisted ? wishlistApi.remove(product.id) : wishlistApi.add(product.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wishlist-check', product.id] })
-      queryClient.invalidateQueries({ queryKey: ['wishlist-count'] })
       queryClient.invalidateQueries({ queryKey: ['wishlist'] })
+      queryClient.invalidateQueries({ queryKey: ['wishlist-count'] })
       message.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist')
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
