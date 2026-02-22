@@ -213,6 +213,14 @@ export interface ReviewStats {
   breakdown: Record<number, number>
 }
 
+// ─── Wishlist ─────────────────────────────────────────────────────────────────
+export interface WishlistItem {
+  id: string
+  product_id: string
+  product: Product
+  created_at: string
+}
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 export interface OrderStats {
   total_orders: number

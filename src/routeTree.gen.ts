@@ -17,6 +17,7 @@ import { Route as AuthRegisterRouteImport } from './routes/auth/register'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
 import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
+import { Route as AppWishlistRouteImport } from './routes/_app/wishlist'
 import { Route as AppTrackRouteImport } from './routes/_app/track'
 import { Route as AppCheckoutRouteImport } from './routes/_app/checkout'
 import { Route as AppCartRouteImport } from './routes/_app/cart'
@@ -72,6 +73,11 @@ const AdminLayoutRoute = AdminLayoutRouteImport.update({
   id: '/admin/_layout',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppWishlistRoute = AppWishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppTrackRoute = AppTrackRouteImport.update({
   id: '/track',
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof AppCartRoute
   '/checkout': typeof AppCheckoutRoute
   '/track': typeof AppTrackRoute
+  '/wishlist': typeof AppWishlistRoute
   '/admin': typeof AdminLayoutRouteWithChildren
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/cart': typeof AppCartRoute
   '/checkout': typeof AppCheckoutRoute
   '/track': typeof AppTrackRoute
+  '/wishlist': typeof AppWishlistRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/_app/cart': typeof AppCartRoute
   '/_app/checkout': typeof AppCheckoutRoute
   '/_app/track': typeof AppTrackRoute
+  '/_app/wishlist': typeof AppWishlistRoute
   '/admin/_layout': typeof AdminLayoutRouteWithChildren
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/track'
+    | '/wishlist'
     | '/admin'
     | '/auth/forgot-password'
     | '/auth/login'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/track'
+    | '/wishlist'
     | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/register'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '/_app/cart'
     | '/_app/checkout'
     | '/_app/track'
+    | '/_app/wishlist'
     | '/admin/_layout'
     | '/auth/forgot-password'
     | '/auth/login'
@@ -378,6 +390,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AdminLayoutRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/wishlist': {
+      id: '/_app/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof AppWishlistRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/track': {
       id: '/_app/track'
@@ -499,6 +518,7 @@ interface AppRouteChildren {
   AppCartRoute: typeof AppCartRoute
   AppCheckoutRoute: typeof AppCheckoutRoute
   AppTrackRoute: typeof AppTrackRoute
+  AppWishlistRoute: typeof AppWishlistRoute
   AppIndexRoute: typeof AppIndexRoute
   AppOrdersIdRoute: typeof AppOrdersIdRoute
   AppProductsSlugRoute: typeof AppProductsSlugRoute
@@ -511,6 +531,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCartRoute: AppCartRoute,
   AppCheckoutRoute: AppCheckoutRoute,
   AppTrackRoute: AppTrackRoute,
+  AppWishlistRoute: AppWishlistRoute,
   AppIndexRoute: AppIndexRoute,
   AppOrdersIdRoute: AppOrdersIdRoute,
   AppProductsSlugRoute: AppProductsSlugRoute,

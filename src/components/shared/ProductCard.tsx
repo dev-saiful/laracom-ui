@@ -3,8 +3,10 @@ import { Tag, Rate, Typography, Button, Tooltip } from 'antd'
 import { ShoppingCartOutlined, HeartOutlined, HeartFilled, EyeOutlined } from '@ant-design/icons'
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { Product } from '@/types'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cartApi } from '@/api/cart'
+import { wishlistApi } from '@/api/wishlist'
+import { useAuthStore } from '@/store/auth'
 import { App } from 'antd'
 
 const { Text, Title } = Typography
@@ -18,8 +20,18 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const [wishlisted, setWishlisted] = useState(false)
+  const { isAuthenticated } = useAuthStore()
   const [imgError, setImgError] = useState(false)
+
+  // Check if product is in wishlist (only for authenticated users)
+  const { data: wishlistStatus } = useQuery({
+    queryKey: ['wishlist-check', product.id],
+    queryFn: () => wishlistApi.check(product.id).then((r) => r.data.data.in_wishlist),
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const isWishlisted = wishlistStatus ?? false
 
   const addToCart = useMutation({
     mutationFn: () => cartApi.addItem({ product_id: product.id, quantity: 1 }),
@@ -32,6 +44,29 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
       message.error(err.response?.data?.message ?? 'Failed to add to cart')
     },
   })
+
+  const toggleWishlist = useMutation({
+    mutationFn: () => isWishlisted ? wishlistApi.remove(product.id) : wishlistApi.add(product.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wishlist-check', product.id] })
+      queryClient.invalidateQueries({ queryKey: ['wishlist-count'] })
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] })
+      message.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist')
+    },
+    onError: (err: { response?: { data?: { message?: string } } }) => {
+      message.error(err.response?.data?.message ?? 'Failed to update wishlist')
+    },
+  })
+
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (!isAuthenticated) {
+      message.info('Please login to add items to your wishlist')
+      navigate({ to: '/auth/login' })
+      return
+    }
+    toggleWishlist.mutate()
+  }
 
   const imageSrc = !imgError && product.images?.[0]
     ? product.images[0]
@@ -147,21 +182,23 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
 
         {/* Wishlist Button */}
         <button
-          className={`wishlist-btn${wishlisted ? ' active' : ''}`}
-          aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          aria-pressed={wishlisted}
-          onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted) }}
+          className={`wishlist-btn${isWishlisted ? ' active' : ''}`}
+          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-pressed={isWishlisted}
+          onClick={handleWishlistClick}
+          disabled={toggleWishlist.isPending}
           style={{
             position: 'absolute', top: 10, right: 10,
             background: 'white', border: 'none',
             borderRadius: '50%', width: 32, height: 32,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', boxShadow: '0 2px 8px rgb(0 0 0 / 0.12)',
-            color: wishlisted ? '#ef4444' : '#94a3b8',
+            cursor: toggleWishlist.isPending ? 'wait' : 'pointer',
+            boxShadow: '0 2px 8px rgb(0 0 0 / 0.12)',
+            color: isWishlisted ? '#ef4444' : '#94a3b8',
             transition: 'all 0.2s', fontSize: 15, opacity: 0, zIndex: 2,
           }}
         >
-          {wishlisted ? <HeartFilled /> : <HeartOutlined />}
+          {isWishlisted ? <HeartFilled /> : <HeartOutlined />}
         </button>
 
         {/* Hover Quick Actions */}

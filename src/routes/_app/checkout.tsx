@@ -86,8 +86,17 @@ function CheckoutPage() {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['cart'] })
       queryClient.invalidateQueries({ queryKey: ['cart-count'] })
-      message.success('Order placed successfully!')
-      navigate({ to: '/orders/$id', params: { id: res.data.data.id } })
+      
+      const orderId = res.data.data.id
+      const orderNumber = res.data.data.order_number
+      
+      if (isAuthenticated) {
+        // Authenticated users go to order detail page
+        navigate({ to: '/orders/$id', params: { id: orderId }, search: { success: 'true' } })
+      } else {
+        // Guest users go to track page with order number pre-filled
+        navigate({ to: '/track', search: { orderNumber, success: 'true' } })
+      }
     },
     onError: (err: unknown) => {
       message.error(getErrorMessage(err, 'Checkout failed. Please try again.'))

@@ -24,6 +24,7 @@ import {
 import { useAuthStore } from '@/store/auth'
 import { useQuery } from '@tanstack/react-query'
 import { cartApi } from '@/api/cart'
+import { wishlistApi } from '@/api/wishlist'
 import { authApi } from '@/api/auth'
 import { App } from 'antd'
 
@@ -55,8 +56,19 @@ export default function Navbar() {
   const { data: cartCount } = useQuery({
     queryKey: ['cart-count'],
     queryFn: () => cartApi.count().then((r) => r.data.data.count),
-    refetchInterval: 30_000,
-    enabled: true,
+    staleTime: 5 * 60 * 1000,        // Consider fresh for 5 minutes
+    refetchOnWindowFocus: false,      // Don't refetch on tab switch
+    refetchOnReconnect: false,        // Don't refetch on network reconnect
+    // Cart count updates via invalidateQueries when cart changes
+  })
+
+  const { data: wishlistCount } = useQuery({
+    queryKey: ['wishlist-count'],
+    queryFn: () => wishlistApi.count().then((r) => r.data.data.count),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    enabled: isAuthenticated,  // Only fetch when logged in
   })
 
   const handleLogout = async () => {
@@ -162,9 +174,18 @@ export default function Navbar() {
 
           {/* ── Right Action Icons ── */}
           <div className="navbar-actions">
-            {/* Wishlist (visual placeholder) */}
-            <button className="navbar-icon-btn desktop-only" aria-label="Wishlist">
-              <HeartOutlined style={{ fontSize: 20 }} />
+            {/* Wishlist */}
+            <button
+              className="navbar-icon-btn desktop-only"
+              aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ''}`}
+              onClick={() => isAuthenticated ? navigate({ to: '/wishlist' }) : navigate({ to: '/auth/login' })}
+            >
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <HeartOutlined style={{ fontSize: 20 }} />
+                {isAuthenticated && (wishlistCount ?? 0) > 0 && (
+                  <span className="navbar-cart-badge">{wishlistCount! > 99 ? '99+' : wishlistCount}</span>
+                )}
+              </span>
               <span className="navbar-icon-label">Wishlist</span>
             </button>
 

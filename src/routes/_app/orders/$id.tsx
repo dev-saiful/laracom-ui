@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Typography, Row, Col, Card, Steps, Button, Popconfirm, Space } from 'antd'
-import { ArrowLeftOutlined, UndoOutlined } from '@ant-design/icons'
+import { Typography, Row, Col, Card, Steps, Button, Popconfirm, Space, Alert } from 'antd'
+import { ArrowLeftOutlined, UndoOutlined, CheckCircleOutlined, CopyOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ordersApi } from '@/api/orders'
 import { getErrorMessage } from '@/lib/error'
@@ -8,6 +8,7 @@ import OrderStatusBadge from '@/components/shared/OrderStatusBadge'
 import AuthGuard from '@/components/shared/AuthGuard'
 import dayjs from 'dayjs'
 import { App } from 'antd'
+import { useState } from 'react'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -17,18 +18,32 @@ export const Route = createFileRoute('/_app/orders/$id')({
       <OrderDetailPage />
     </AuthGuard>
   ),
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      success: search.success as string | undefined,
+    }
+  },
 })
 
 function OrderDetailPage() {
   const { id } = Route.useParams()
+  const { success } = Route.useSearch()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
+  const [showSuccess, setShowSuccess] = useState(success === 'true')
 
   const { data: orderResp, isLoading } = useQuery({
     queryKey: ['order', id],
     queryFn: () => ordersApi.show(id).then((r) => r.data),
   })
   const order = orderResp?.data
+
+  const copyOrderNumber = () => {
+    if (order?.order_number) {
+      navigator.clipboard.writeText(order.order_number)
+      message.success('Order number copied to clipboard!')
+    }
+  }
 
   const cancelOrder = useMutation({
     mutationFn: (id: string) => ordersApi.cancel(id),
@@ -54,6 +69,63 @@ function OrderDetailPage() {
 
   return (
     <div className="page-container section-gap">
+      {/* Order Success Alert */}
+      {showSuccess && (
+        <Alert
+          message={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircleOutlined style={{ fontSize: 20, color: '#52c41a' }} />
+              <Text strong style={{ fontSize: 16 }}>Order Placed Successfully!</Text>
+            </div>
+          }
+          description={
+            <div style={{ marginTop: 12 }}>
+              <div style={{ marginBottom: 16 }}>
+                <Text>Your order has been confirmed. Here is your order tracking number:</Text>
+              </div>
+              <div
+                style={{
+                  background: '#f6f8fa',
+                  padding: '16px 20px',
+                  borderRadius: 8,
+                  border: '2px dashed #6366f1',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <div>
+                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Order Number</Text>
+                  <Text strong style={{ fontSize: 20, color: '#6366f1', letterSpacing: '0.5px' }}>
+                    {order.order_number}
+                  </Text>
+                </div>
+                <Button
+                  type="primary"
+                  icon={<CopyOutlined />}
+                  onClick={copyOrderNumber}
+                  style={{ flexShrink: 0 }}
+                >
+                  Copy
+                </Button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Text strong style={{ color: '#f97316' }}>⚠️ Important: Save this order number!</Text>
+                <Text type="secondary">• Use this number to track your order on the <Link to="/track">Track Order</Link> page</Text>
+                <Text type="secondary">• You'll need it for any inquiries about your order</Text>
+                <Text type="secondary">• A confirmation email has been sent to your registered email address</Text>
+              </div>
+            </div>
+          }
+          type="success"
+          closable
+          onClose={() => setShowSuccess(false)}
+          style={{ marginBottom: 32, borderRadius: 12 }}
+          showIcon={false}
+        />
+      )}
+
       <Space style={{ marginBottom: 24 }}>
         <Link to="/orders">
           <Button icon={<ArrowLeftOutlined />}>Back to Orders</Button>
