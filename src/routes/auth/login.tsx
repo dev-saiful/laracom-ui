@@ -1,21 +1,42 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { Form, Input, Button, Typography, Alert, Checkbox, Divider } from 'antd'
-import { UserOutlined, LockOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/store/auth'
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react'
 
-const { Title, Text, Paragraph } = Typography
+const schema = z.object({
+  email: z.string().email('Enter a valid email address'),
+  password: z.string().min(1, 'Please enter your password'),
+})
+type FormValues = z.infer<typeof schema>
 
 export const Route = createFileRoute('/auth/login')({
   component: LoginPage,
 })
 
+const FEATURES = [
+  { icon: '🚀', text: 'Faster checkout with saved details' },
+  { icon: '📦', text: 'Track all your orders in one place' },
+  { icon: '💝', text: 'Exclusive deals for members' },
+]
+
 function LoginPage() {
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+  })
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
@@ -25,217 +46,118 @@ function LoginPage() {
       navigate({ to: user.role === 'admin' ? '/admin' : '/' })
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
-      setError(err?.response?.data?.message || 'Invalid email or password. Please try again.')
+      setError(err?.response?.data?.message || 'Invalid email or password.')
     },
   })
 
   return (
-    <div className="auth-page">
-      {/* ── Left Branding Sidebar ── */}
-      <div
-        className="auth-sidebar"
-        aria-hidden="true"
-        style={{
-          background: 'linear-gradient(145deg, #3730a3 0%, #6d28d9 50%, #7c3aed 100%)',
-          position: 'relative', overflow: 'hidden',
-        }}
-      >
-        {/* Background bubbles */}
-        <div style={{ position: 'absolute', top: '10%', right: '5%', width: 200, height: 200, background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: '15%', left: '-5%', width: 280, height: 280, background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', top: '55%', right: '-8%', width: 160, height: 160, background: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
-
-        <div className="auth-sidebar-content" style={{ position: 'relative', zIndex: 1 }}>
-          {/* Logo */}
-          <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'center' }}>
-            <div style={{
-              width: 64, height: 64,
-              background: 'rgba(255,255,255,0.15)',
-              border: '1.5px solid rgba(255,255,255,0.3)',
-              borderRadius: 18,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, backdropFilter: 'blur(8px)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-            }}>🛍️</div>
+    <div className="min-h-screen flex">
+      {/* Left Sidebar */}
+      <div className="hidden lg:flex lg:w-[45%] xl:w-[42%] bg-linear-to-br from-indigo-700 via-purple-700 to-violet-700 flex-col justify-center px-12 py-16 relative overflow-hidden">
+        <div className="absolute top-[10%] right-[5%] w-48 h-48 bg-white/5 rounded-full" />
+        <div className="absolute bottom-[15%] left-[-5%] w-72 h-72 bg-white/4 rounded-full" />
+        <div className="relative z-10">
+          <Link to="/" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium mb-10 no-underline transition-colors group">
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            Back to store
+          </Link>
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-white/15 border border-white/30 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm shadow-xl">🛍️</div>
           </div>
-
-          <Title level={2} style={{ color: 'white', margin: '0 0 12px', fontWeight: 800, letterSpacing: '-0.03em' }}>
-            Welcome back!
-          </Title>
-          <Paragraph style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, lineHeight: 1.7, margin: '0 0 40px' }}>
+          <h2 className="text-3xl font-extrabold text-white mb-3 tracking-tight">Welcome back!</h2>
+          <p className="text-white/75 text-[15px] leading-relaxed mb-10">
             Sign in to access your orders, wishlist, and exclusive member deals.
-          </Paragraph>
-
-          {/* Mini Feature List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {[
-              { icon: '🚀', text: 'Faster checkout with saved details' },
-              { icon: '📦', text: 'Track all your orders in one place' },
-              { icon: '💝', text: 'Exclusive deals for members' },
-            ].map(({ icon, text }) => (
-              <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 38, height: 38, flexShrink: 0,
-                  background: 'rgba(255,255,255,0.12)',
-                  borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 18,
-                }}>
-                  {icon}
-                </div>
-                <Text style={{ color: 'rgba(255,255,255,0.82)', fontSize: 14, lineHeight: 1.4 }}>{text}</Text>
+          </p>
+          <div className="space-y-4">
+            {FEATURES.map(({ icon, text }) => (
+              <div key={text} className="flex items-center gap-3">
+                <div className="w-9 h-9 shrink-0 bg-white/12 rounded-xl flex items-center justify-center text-base">{icon}</div>
+                <span className="text-white/82 text-sm">{text}</span>
               </div>
             ))}
           </div>
-
-          {/* Rating */}
-          <div style={{
-            marginTop: 48, background: 'rgba(255,255,255,0.1)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: 14, padding: '16px 20px',
-            backdropFilter: 'blur(8px)',
-          }}>
-            <div style={{ display: 'flex', gap: 2, marginBottom: 6 }}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <span key={i} style={{ color: '#fbbf24', fontSize: 14 }}>★</span>
-              ))}
-            </div>
-            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13.5, lineHeight: 1.6 }}>
-              "Best shopping experience ever! Fast delivery and amazing product quality."
-            </Text>
-            <div style={{ marginTop: 8 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>— Sarah K., Verified Customer</Text>
-            </div>
+          <div className="mt-12 bg-white/10 border border-white/20 rounded-2xl p-5 backdrop-blur-sm">
+            <div className="flex gap-0.5 mb-3">{Array.from({ length: 5 }).map((_, i) => <span key={i} className="text-amber-400 text-sm">★</span>)}</div>
+            <p className="text-white/90 text-[13.5px] leading-relaxed italic">"Best shopping experience ever! Fast delivery and amazing product quality."</p>
+            <p className="text-white/60 text-xs mt-2">— Sarah K., Verified Customer</p>
           </div>
         </div>
       </div>
 
-      {/* ── Right: Form Panel ── */}
-      <div className="auth-panel">
-        <div className="auth-card">
-          {/* Mobile Logo */}
-          <Link to="/" style={{
-            display: 'none', alignItems: 'center', gap: 8,
-            textDecoration: 'none', marginBottom: 32,
-          }} className="auth-mobile-logo">
-            <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.04em' }}>
-              🛍️ Lara<span style={{ color: '#6366f1' }}>com</span>
-            </span>
-          </Link>
-
-          <div style={{ marginBottom: 32 }}>
-            <Title level={3} style={{ margin: '0 0 6px', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a' }}>
-              Sign in to your account
-            </Title>
-            <Text style={{ color: '#64748b', fontSize: 15 }}>
-              Don't have an account?{' '}
-              <Link to="/auth/register" style={{ color: '#6366f1', fontWeight: 600 }}>
-                Create one free
-              </Link>
-            </Text>
+      {/* Right Form */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12 bg-slate-50">
+        <div className="w-full max-w-md">
+          <div className="flex items-center justify-between mb-8">
+            <Link to="/" className="flex items-center gap-2 no-underline">
+              <span className="w-9 h-9 bg-linear-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-lg">🛍️</span>
+              <span className="text-xl font-black tracking-tight">Lara<span className="text-indigo-600">com</span></span>
+            </Link>
+            <Link to="/" className="lg:hidden inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-indigo-600 no-underline transition-colors">
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Link>
           </div>
 
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setError('')}
-              style={{ marginBottom: 24, borderRadius: 10 }}
-            />
-          )}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+            <div className="mb-7">
+              <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Sign in to your account</h1>
+              <p className="text-slate-500 text-sm">
+                Don't have an account?{' '}
+                <Link to="/auth/register" className="text-indigo-600 font-semibold no-underline hover:underline">Create one free</Link>
+              </p>
+            </div>
 
-          <Form
-            layout="vertical"
-            onFinish={(values) => { setError(''); loginMutation.mutate(values) }}
-            autoComplete="on"
-            requiredMark={false}
-          >
-            <Form.Item
-              name="email"
-              label={<span style={{ fontWeight: 600, fontSize: 13.5 }}>Email address</span>}
-              rules={[
-                { required: true, message: 'Please enter your email' },
-                { type: 'email', message: 'Enter a valid email address' },
-              ]}
-            >
-              <Input
-                prefix={<UserOutlined style={{ color: '#94a3b8' }} />}
-                placeholder="you@example.com"
-                size="large"
-                autoComplete="email"
-                aria-label="Email address"
-              />
-            </Form.Item>
+            {error && (
+              <Alert variant="destructive" className="mb-5">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-            <Form.Item
-              name="password"
-              label={
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <span style={{ fontWeight: 600, fontSize: 13.5 }}>Password</span>
-                  <Link to="/auth/forgot-password" style={{ color: '#6366f1', fontSize: 13, fontWeight: 500 }}>
-                    Forgot password?
-                  </Link>
+            <form onSubmit={handleSubmit((values) => { setError(''); loginMutation.mutate(values) })} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="font-semibold text-[13.5px]">Email address</Label>
+                <Input
+                  id="email" type="email"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  {...register('email')}
+                  className={errors.email ? 'border-red-400 focus-visible:ring-red-400' : ''}
+                />
+                {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="font-semibold text-[13.5px]">Password</Label>
+                  <Link to="/auth/forgot-password" className="text-indigo-600 text-xs font-medium no-underline hover:underline">Forgot password?</Link>
                 </div>
-              }
-              rules={[{ required: true, message: 'Please enter your password' }]}
-            >
-              <Input.Password
-                prefix={<LockOutlined style={{ color: '#94a3b8' }} />}
-                placeholder="Enter your password"
-                size="large"
-                autoComplete="current-password"
-                aria-label="Password"
-              />
-            </Form.Item>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    {...register('password')}
+                    className={errors.password ? 'border-red-400 focus-visible:ring-red-400 pr-10' : 'pr-10'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 border-0 bg-transparent p-0 cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+              </div>
 
-            <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 20 }}>
-              <Checkbox style={{ fontSize: 14, color: '#475569' }}>
-                Keep me signed in
-              </Checkbox>
-            </Form.Item>
-
-            <Form.Item style={{ marginBottom: 16 }}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                block
-                size="large"
-                loading={loginMutation.isPending}
-                icon={!loginMutation.isPending ? <ArrowRightOutlined /> : undefined}
-                iconPosition="end"
-                style={{ fontWeight: 700, fontSize: 15 }}
-              >
-                {loginMutation.isPending ? 'Signing in…' : 'Sign In'}
+              <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                {loginMutation.isPending ? 'Signing in…' : (
+                  <><span>Sign In</span><ArrowRight className="ml-2 h-4 w-4" /></>
+                )}
               </Button>
-            </Form.Item>
-          </Form>
-
-          <Divider style={{ color: '#94a3b8', fontSize: 12 }}>Or continue with</Divider>
-
-          {/* Social login placeholder buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
-            {['Google', 'GitHub'].map((provider) => (
-              <Button
-                key={provider}
-                block size="large"
-                style={{
-                  fontWeight: 600, borderColor: '#e2e8f0', color: '#374151',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}
-                disabled
-              >
-                {provider === 'Google' ? '🔍' : '🐙'} {provider}
-              </Button>
-            ))}
+            </form>
           </div>
-
-          <Text style={{ fontSize: 12, color: '#94a3b8', display: 'block', textAlign: 'center', lineHeight: 1.6 }}>
-            By signing in, you agree to our{' '}
-            <Link to="/" style={{ color: '#6366f1' }}>Terms of Service</Link>
-            {' '}and{' '}
-            <Link to="/" style={{ color: '#6366f1' }}>Privacy Policy</Link>.
-          </Text>
         </div>
       </div>
     </div>

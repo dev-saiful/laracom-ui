@@ -1,53 +1,50 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import {
-  Button, Typography, Row, Col, Space, Skeleton,
-  Divider,
-} from 'antd'
-import {
-  ArrowRightOutlined,
-  CarOutlined,
-  SafetyOutlined,
-  CustomerServiceOutlined,
-  ThunderboltOutlined,
-  StarFilled,
-  FireOutlined,
-  AppstoreOutlined,
-} from '@ant-design/icons'
+import { Truck, ShieldCheck, Headphones, Zap, Star, ArrowRight, Sparkles } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { productsApi, categoriesApi } from '@/api/products'
 import ProductCard from '@/components/shared/ProductCard'
-
-const { Title, Text, Paragraph } = Typography
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/')({
   component: HomePage,
 })
 
-// ── Category icon map (emoji fallback) ────────────────────────────────────────
-const CATEGORY_ICONS: Record<string, string> = {
-  electronics: '💻',
-  clothing:    '👗',
-  shoes:       '👟',
-  furniture:   '🛋️',
-  books:       '📚',
-  sports:      '⚽',
-  beauty:      '💄',
-  toys:        '🧸',
-  food:        '🍔',
-  garden:      '🌱',
-  default:     '🏷️',
-}
+/* ─── Static data ──────────────────────────────────────────────────────────── */
 
+const TRUST_ITEMS = [
+  { Icon: Truck,       label: 'Free Shipping',   desc: 'On orders over $50' },
+  { Icon: ShieldCheck, label: 'Secure Payments', desc: '256-bit SSL encryption' },
+  { Icon: Headphones,  label: '24/7 Support',    desc: "We're always here" },
+  { Icon: Zap,         label: 'Fast Delivery',   desc: '2–3 business days' },
+]
+
+const CATEGORY_ICONS: Record<string, string> = {
+  electronics: '💻', clothing: '👗', shoes: '👟', furniture: '🛋️',
+  books: '📚', sports: '⚽', beauty: '💄', toys: '🧸',
+  food: '🍔', garden: '🌱', default: '🏷️',
+}
 const getCategoryIcon = (slug: string) =>
   CATEGORY_ICONS[slug.toLowerCase()] ?? CATEGORY_ICONS['default']
 
-// ── Trust/Feature items ────────────────────────────────────────────────────────
-const TRUST_ITEMS = [
-  { icon: <CarOutlined />,              label: 'Free Shipping',       desc: 'On orders over $50' },
-  { icon: <SafetyOutlined />,           label: 'Secure Payments',     desc: '256-bit SSL encryption' },
-  { icon: <CustomerServiceOutlined />,  label: '24/7 Support',        desc: "We're always here" },
-  { icon: <ThunderboltOutlined />,      label: 'Fast Delivery',       desc: '2–3 business days' },
+const CATEGORY_COLORS = [
+  'bg-violet-50 text-violet-700 hover:bg-violet-100',
+  'bg-sky-50    text-sky-700    hover:bg-sky-100',
+  'bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+  'bg-amber-50  text-amber-700  hover:bg-amber-100',
+  'bg-rose-50   text-rose-700   hover:bg-rose-100',
+  'bg-indigo-50 text-indigo-700 hover:bg-indigo-100',
 ]
+
+const FEATURES = [
+  { icon: '🛡️', bg: 'bg-indigo-50',  title: 'Buyer Protection',  desc: 'Money-back guarantee on every order.' },
+  { icon: '🚀', bg: 'bg-emerald-50', title: 'Lightning Fast',    desc: 'Optimized from browse to checkout.' },
+  { icon: '💎', bg: 'bg-amber-50',   title: 'Premium Quality',   desc: 'Every product is vetted by our team.' },
+  { icon: '🔄', bg: 'bg-rose-50',    title: 'Easy Returns',      desc: 'Hassle-free returns within 30 days.' },
+]
+
+/* ─── Component ─────────────────────────────────────────────────────────────── */
 
 function HomePage() {
   const navigate = useNavigate()
@@ -63,280 +60,297 @@ function HomePage() {
   })
 
   return (
-    <>
-      {/* ══════════════════════════════ HERO ══════════════════════════════════ */}
-      <section className="hero-section" aria-label="Welcome banner">
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div className="hero-badge">
-            <FireOutlined />
+    <div className="bg-white">
+
+      {/* ── HERO ──────────────────────────────────────────────────────────── */}
+      <section
+        aria-label="Welcome banner"
+        className="relative overflow-hidden bg-slate-950 flex items-center min-h-[580px]"
+      >
+        {/* Ambient glows */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-indigo-600/20 blur-[120px]" />
+          <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-purple-600/15 blur-[100px]" />
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full bg-sky-600/10 blur-[100px]" />
+        </div>
+
+        {/* Subtle grid texture */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03]"
+          style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}
+        />
+
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/15 border border-indigo-500/25 text-indigo-300 text-sm font-medium mb-7 backdrop-blur-sm">
+            <Sparkles className="w-3.5 h-3.5" />
             New Season Sale — Up to 50% Off
           </div>
 
-          <h1 className="hero-title">
-            Discover Products<br />You'll <em style={{ fontStyle: 'normal', color: '#c4b5fd' }}>Love</em>
+          {/* Heading */}
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.05] mb-6">
+            Shop what you<br />
+            <span className="bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              truly love
+            </span>
           </h1>
 
-          <p className="hero-subtitle">
+          <p className="text-slate-400 text-lg max-w-lg mx-auto leading-relaxed mb-10">
             Curated collections of premium products delivered to your door.
             Quality you can trust, prices you'll celebrate.
           </p>
 
-          <div className="hero-cta-group">
+          {/* CTAs */}
+          <div className="flex flex-wrap justify-center gap-3 mb-14">
             <Button
-              size="large"
-              className="hero-btn-primary"
+              size="lg"
+              className="h-12 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-xl shadow-indigo-600/30 transition-all duration-200 hover:scale-[1.02]"
               onClick={() => navigate({ to: '/products' })}
-              icon={<AppstoreOutlined />}
             >
-              Shop Now
+              Shop Now <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
             <Button
-              size="large"
-              className="hero-btn-outline"
+              size="lg"
+              variant="outline"
+              className="h-12 px-8 rounded-xl border-white/15 text-white bg-white/5 hover:bg-white/10 font-medium backdrop-blur-sm transition-all duration-200"
               onClick={() => navigate({ to: '/products', search: { sort: 'newest' } })}
-              icon={<ArrowRightOutlined />}
             >
               New Arrivals
             </Button>
           </div>
 
-          {/* Social Proof Numbers */}
-          <div style={{
-            display: 'flex', justifyContent: 'center', gap: 40,
-            marginTop: 48, flexWrap: 'wrap',
-            animation: 'fadeInUp 0.45s ease 0.25s both',
-          }}>
+          {/* Social proof stats */}
+          <div className="flex justify-center gap-10 sm:gap-16 flex-wrap">
             {[
               { value: '50K+', label: 'Happy Customers' },
-              { value: '10K+', label: 'Products' },
-              { value: '4.9',  label: 'Average Rating', icon: <StarFilled style={{ fontSize: 10, color: '#fbbf24' }} /> },
-              { value: '99%',  label: 'Satisfaction Rate' },
-            ].map(({ value, label, icon }) => (
-              <div key={label} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#ffffff', lineHeight: 1.1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                  {icon}{value}
+              { value: '10K+', label: 'Products Listed' },
+              { value: '4.9',  label: 'Avg Rating', star: true },
+              { value: '99%',  label: 'Satisfaction' },
+            ].map(({ value, label, star }) => (
+              <div key={label} className="text-center">
+                <div className="text-2xl font-black text-white flex items-center justify-center gap-1">
+                  {star && <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />}
+                  {value}
                 </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 3 }}>{label}</div>
+                <div className="text-xs text-slate-500 mt-1 font-medium">{label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════ TRUST BAR ══════════════════════════════════ */}
-      <div className="trust-bar" role="list" aria-label="Service guarantees">
-        <div className="page-container">
-          <Row gutter={[0, 0]} justify="center">
-            {TRUST_ITEMS.map(({ icon, label, desc }, idx) => (
-              <Col key={label} xs={12} sm={12} md={6} role="listitem">
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  justifyContent: 'center', padding: '10px 12px',
-                  borderRight: idx < TRUST_ITEMS.length - 1 ? '1px solid #f1f5f9' : 'none',
-                }}>
-                  <div className="trust-bar-icon">{icon}</div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>{label}</div>
-                    <div style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.3 }}>{desc}</div>
-                  </div>
+      {/* ── TRUST BAR ─────────────────────────────────────────────────────── */}
+      <div className="bg-white border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-100">
+            {TRUST_ITEMS.map(({ Icon, label, desc }) => (
+              <div key={label} className="flex items-center gap-3 py-5 px-4 sm:px-6">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                  <Icon className="w-5 h-5" />
                 </div>
-              </Col>
+                <div>
+                  <div className="text-sm font-bold text-slate-900">{label}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">{desc}</div>
+                </div>
+              </div>
             ))}
-          </Row>
+          </div>
         </div>
       </div>
 
-      <div className="page-container section-gap">
+      {/* ── MAIN CONTENT ──────────────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-20">
 
-        {/* ══════════════════════════ CATEGORIES ══════════════════════════════ */}
-        <section aria-label="Product categories" style={{ marginBottom: 64 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
+        {/* CATEGORIES */}
+        <section aria-label="Product categories">
+          <div className="flex items-end justify-between mb-8">
             <div>
-              <span className="section-eyebrow">Browse</span>
-              <h2 className="section-title" style={{ margin: 0 }}>Shop by Category</h2>
+              <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-1">Browse</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900">Shop by Category</h2>
             </div>
-            <Link to="/products" style={{ color: '#6366f1', fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}>
-              All Categories <ArrowRightOutlined />
+            <Link
+              to="/products"
+              className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors no-underline"
+            >
+              All Categories <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           {categoriesLoading ? (
-            <Row gutter={[16, 16]}>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Col xs={12} sm={8} md={4} key={i}>
-                  <Skeleton.Button active block style={{ height: 96, borderRadius: 14 }} />
-                </Col>
+                <Skeleton key={i} className="h-24 rounded-2xl" />
               ))}
-            </Row>
+            </div>
           ) : (
-            <Row gutter={[12, 12]}>
-              {categories?.map((cat) => (
-                <Col xs={12} sm={8} md={4} key={cat.id}>
-                  <Link
-                    to="/products"
-                    search={{ category: cat.slug }}
-                    className="category-card"
-                    aria-label={`Browse ${cat.name}`}
-                  >
-                    <div className="category-icon" style={{ margin: '0 auto 10px' }}>
-                      {getCategoryIcon(cat.slug)}
-                    </div>
-                    <Text strong style={{ fontSize: 13, color: 'inherit', display: 'block' }}>
-                      {cat.name}
-                    </Text>
-                    {cat.products_count !== undefined && (
-                      <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, display: 'block' }}>
-                        {cat.products_count} items
-                      </Text>
-                    )}
-                  </Link>
-                </Col>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {categories?.slice(0, 12).map((cat, i) => (
+                <Link
+                  key={cat.id}
+                  to="/products"
+                  search={{ category: cat.slug }}
+                  aria-label={`Browse ${cat.name}`}
+                  className={cn(
+                    'flex flex-col items-center gap-2 p-4 rounded-2xl text-center cursor-pointer',
+                    'transition-all duration-200 hover:scale-[1.04] hover:shadow-md no-underline',
+                    CATEGORY_COLORS[i % CATEGORY_COLORS.length]
+                  )}
+                >
+                  <div className="text-2xl leading-none">{getCategoryIcon(cat.slug)}</div>
+                  <span className="text-xs font-bold leading-tight">{cat.name}</span>
+                  {cat.products_count !== undefined && (
+                    <span className="text-[10px] opacity-60 font-medium">{cat.products_count} items</span>
+                  )}
+                </Link>
               ))}
-            </Row>
+            </div>
           )}
         </section>
 
-        {/* ══════════════════════════ FEATURED PRODUCTS ═══════════════════════ */}
-        <section aria-label="Featured products" style={{ marginBottom: 64 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
+        {/* FEATURED PRODUCTS */}
+        <section aria-label="Featured products">
+          <div className="flex items-end justify-between mb-8">
             <div>
-              <span className="section-eyebrow">Handpicked</span>
-              <h2 className="section-title" style={{ margin: 0 }}>Featured Products</h2>
+              <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-1">Handpicked</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900">Featured Products</h2>
             </div>
-            <Button
-              type="link"
+            <button
               onClick={() => navigate({ to: '/products' })}
-              style={{ color: '#6366f1', fontWeight: 600, padding: 0 }}
+              className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors"
             >
-              View All <ArrowRightOutlined />
-            </Button>
+              View All <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {featuredLoading ? (
-            <Row gutter={[20, 20]}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {Array.from({ length: 4 }).map((_, i) => (
-                <Col xs={24} sm={12} md={8} lg={6} key={i}>
-                  <Skeleton active style={{ borderRadius: 14 }} />
-                </Col>
+                <Skeleton key={i} className="h-80 rounded-2xl" />
               ))}
-            </Row>
+            </div>
           ) : (featured?.length ?? 0) === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🛍️</div>
-              <Text type="secondary">No featured products yet. Check back soon!</Text>
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="text-5xl mb-4">🛍️</div>
+              <p className="text-slate-400 text-sm">No featured products yet. Check back soon!</p>
             </div>
           ) : (
-            <Row gutter={[20, 20]}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {featured?.map((product, i) => (
-                <Col xs={24} sm={12} md={8} lg={6} key={product.id}
-                  style={{ animation: `fadeInUp 0.4s ease ${i * 0.06}s both` }}
+                <div
+                  key={product.id}
+                  style={{ animation: `fadeInUp 0.4s ease ${i * 0.07}s both` }}
                 >
                   <ProductCard product={product} />
-                </Col>
+                </div>
               ))}
-            </Row>
+            </div>
           )}
         </section>
 
-        {/* ══════════════════════════ FEATURES SECTION ════════════════════════ */}
-        <section aria-label="Why choose us" style={{ marginBottom: 32 }}>
-          <Divider style={{ marginBottom: 48 }} />
-          <div style={{ textAlign: 'center', marginBottom: 36 }}>
-            <span className="section-eyebrow">Why Laracom?</span>
-            <h2 className="section-title" style={{ margin: '0 auto', maxWidth: 400 }}>
-              Shopping made simple and secure
-            </h2>
+        {/* PROMO BANNERS */}
+        <section aria-label="Promotions" className="grid md:grid-cols-2 gap-4">
+          {/* Banner 1 */}
+          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-indigo-600 to-violet-700 p-8 sm:p-10 flex flex-col justify-between min-h-[200px] group">
+            <div className="absolute -top-12 -right-12 w-52 h-52 bg-white/10 rounded-full transition-transform duration-500 group-hover:scale-110" />
+            <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full" />
+            <div className="relative">
+              <span className="inline-block text-xs font-bold text-indigo-200 uppercase tracking-widest mb-2">Limited Time</span>
+              <h3 className="text-3xl font-black text-white leading-tight">
+                Up to 50% Off<br />New Arrivals
+              </h3>
+            </div>
+            <Button
+              className="self-start relative bg-white text-indigo-700 hover:bg-indigo-50 font-bold rounded-xl shadow-lg mt-6 transition-transform duration-200 hover:scale-[1.03]"
+              onClick={() => navigate({ to: '/products', search: { sort: 'newest' } })}
+            >
+              Shop Now <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
           </div>
 
-          <Row gutter={[20, 20]}>
-            {[
-              {
-                icon: '🛡️', color: '#eef2ff', iconBg: '#4f46e5',
-                title: 'Buyer Protection',
-                desc: 'Shop with confidence. Every purchase is protected with our money-back guarantee.',
-              },
-              {
-                icon: '🚀', color: '#f0fdf4', iconBg: '#16a34a',
-                title: 'Lightning Fast',
-                desc: 'Optimized experience that gets you from browsing to checkout in seconds.',
-              },
-              {
-                icon: '💎', color: '#fff7ed', iconBg: '#d97706',
-                title: 'Premium Quality',
-                desc: 'Every product is vetted for quality. Only the best makes it to our shelves.',
-              },
-              {
-                icon: '🔄', color: '#fdf2f8', iconBg: '#9333ea',
-                title: 'Easy Returns',
-                desc: 'Not happy? Return any item within 30 days for a full refund, no questions asked.',
-              },
-            ].map(({ icon, color, title, desc }) => (
-              <Col xs={24} sm={12} lg={6} key={title}>
-                <div className="feature-card">
-                  <div
-                    className="feature-icon"
-                    style={{ background: color, fontSize: 28 }}
-                  >
-                    {icon}
-                  </div>
-                  <Title level={5} style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700 }}>
-                    {title}
-                  </Title>
-                  <Paragraph style={{ margin: 0, color: '#64748b', fontSize: 13.5, lineHeight: 1.65 }}>
-                    {desc}
-                  </Paragraph>
-                </div>
-              </Col>
-            ))}
-          </Row>
+          {/* Banner 2 */}
+          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-amber-500 to-orange-600 p-8 sm:p-10 flex flex-col justify-between min-h-[200px] group">
+            <div className="absolute -top-12 -right-12 w-52 h-52 bg-white/10 rounded-full transition-transform duration-500 group-hover:scale-110" />
+            <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full" />
+            <div className="relative">
+              <span className="inline-block text-xs font-bold text-orange-100 uppercase tracking-widest mb-2">Members Only</span>
+              <h3 className="text-3xl font-black text-white leading-tight">
+                Free Shipping<br />On Every Order
+              </h3>
+            </div>
+            <Button
+              className="self-start relative bg-white text-orange-700 hover:bg-orange-50 font-bold rounded-xl shadow-lg mt-6 transition-transform duration-200 hover:scale-[1.03]"
+              onClick={() => navigate({ to: '/auth/register' })}
+            >
+              Join Free <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
         </section>
 
-        {/* ══════════════════════════ CTA BANNER ══════════════════════════════ */}
-        <section aria-label="Newsletter sign up" style={{ marginTop: 24 }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%)',
-            borderRadius: 20, padding: 'clamp(32px, 6vw, 56px) clamp(24px, 5vw, 64px)',
-            display: 'flex', flexWrap: 'wrap', gap: 24,
-            alignItems: 'center', justifyContent: 'space-between',
-            position: 'relative', overflow: 'hidden',
-          }}>
-            {/* Decorative blobs */}
-            <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, background: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
-            <div style={{ position: 'absolute', bottom: -60, left: 40, width: 160, height: 160, background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
+        {/* WHY LARACOM */}
+        <section aria-label="Why choose us">
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-2">Why Laracom</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900">Built around you</h2>
+            <p className="text-slate-400 text-sm mt-2 max-w-md mx-auto">
+              Every feature we build puts your shopping experience first.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {FEATURES.map(({ icon, bg, title, desc }) => (
+              <div
+                key={title}
+                className="flex flex-col items-center text-center p-6 rounded-2xl bg-slate-50 hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 transition-all duration-200"
+              >
+                <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4', bg)}>
+                  {icon}
+                </div>
+                <h5 className="font-bold text-slate-900 text-sm mb-1.5">{title}</h5>
+                <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-            <div style={{ position: 'relative' }}>
-              <Title level={3} style={{ color: 'white', margin: '0 0 8px', fontSize: 'clamp(1.2rem, 3vw, 1.6rem)', fontWeight: 800 }}>
-                Ready to start shopping?
-              </Title>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15 }}>
-                Join 50,000+ happy customers. Get exclusive deals in your inbox.
-              </Text>
+        {/* FINAL CTA */}
+        <section aria-label="Call to action" className="pb-4">
+          <div className="relative overflow-hidden rounded-3xl bg-slate-950 px-8 py-16 text-center">
+            {/* Glows */}
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-indigo-600/25 blur-[80px] rounded-full" />
             </div>
-            <Space wrap style={{ position: 'relative' }}>
-              <Button
-                size="large"
-                style={{
-                  background: 'white', color: '#4f46e5', border: 'none',
-                  fontWeight: 700, borderRadius: 10,
-                  boxShadow: '0 4px 16px rgb(0 0 0 / 0.2)',
-                }}
-                onClick={() => navigate({ to: '/products' })}
-              >
-                Browse Products
-              </Button>
-              <Button
-                size="large"
-                ghost
-                style={{ borderColor: 'rgba(255,255,255,0.5)', color: 'white', fontWeight: 600, borderRadius: 10 }}
-                onClick={() => navigate({ to: '/auth/register' })}
-              >
-                Create Free Account
-              </Button>
-            </Space>
+            {/* Content */}
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/25 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-5">
+                <Sparkles className="w-3 h-3" /> Special offer
+              </div>
+              <h3 className="text-3xl sm:text-4xl font-black text-white mb-3">
+                Ready to start shopping?
+              </h3>
+              <p className="text-slate-400 text-sm max-w-sm mx-auto mb-8 leading-relaxed">
+                Join 50,000+ happy customers and get exclusive deals delivered to your inbox.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button
+                  size="lg"
+                  className="h-12 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-xl shadow-indigo-600/30 transition-all duration-200 hover:scale-[1.02]"
+                  onClick={() => navigate({ to: '/products' })}
+                >
+                  Browse Products
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-12 px-8 rounded-xl border-white/15 text-white bg-white/5 hover:bg-white/10 font-semibold"
+                  onClick={() => navigate({ to: '/auth/register' })}
+                >
+                  Create Free Account
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
 
       </div>
-    </>
+    </div>
   )
 }

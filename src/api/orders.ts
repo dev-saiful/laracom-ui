@@ -5,7 +5,7 @@ export const ordersApi = {
   checkout: (data: CheckoutPayload) =>
     apiClient.post<ApiResponse<Order>>('/orders/checkout', data),
 
-  guestCheckout: (data: CheckoutPayload & { guest_email: string; guest_phone: string; items: unknown[] }) =>
+  guestCheckout: (data: CheckoutPayload & { guest_email?: string; guest_phone: string; items: unknown[] }) =>
     apiClient.post<ApiResponse<Order>>('/orders/guest-checkout', data),
 
   history: (page = 1) =>

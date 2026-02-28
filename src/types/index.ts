@@ -193,6 +193,8 @@ export interface CheckoutPayload {
   billing_address?: ShippingAddress
   notes?: string
   payment_method?: string
+  shipping_zone?: 'inside_dhaka' | 'outside_dhaka'
+  coupon_code?: string
 }
 
 // ─── Review ───────────────────────────────────────────────────────────────────

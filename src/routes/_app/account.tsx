@@ -1,20 +1,20 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import {
-  Form, Input, Button, Card, Typography, Row, Col, Tabs, Avatar,
-  Tag, Table, Divider, Space, Empty
-} from 'antd'
-import { UserOutlined, LockOutlined, ShoppingOutlined } from '@ant-design/icons'
+import { useForm } from 'react-hook-form'
+import { User, Lock, ShoppingBag, Eye } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi } from '@/api/auth'
 import { ordersApi } from '@/api/orders'
 import { useAuthStore } from '@/store/auth'
-import { App } from 'antd'
+import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/error'
 import type { Order, OrderStatus } from '@/types'
 import dayjs from 'dayjs'
 import OrderStatusBadge from '@/components/shared/OrderStatusBadge'
-
-const { Title, Text } = Typography
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/account')({
   component: AccountPage,
@@ -24,13 +24,12 @@ interface ProfileValues { name: string; phone?: string }
 interface PasswordValues { current_password: string; password: string; password_confirmation: string }
 
 function AccountPage() {
-  const { message } = App.useApp()
   const queryClient = useQueryClient()
   const { user, setAuth, isAuthenticated } = useAuthStore()
-  const [profileForm] = Form.useForm<ProfileValues>()
-  const [passwordForm] = Form.useForm<PasswordValues>()
 
-  // Hooks must run unconditionally before any early return
+  const profileForm = useForm<ProfileValues>({ defaultValues: { name: user?.name ?? '', phone: user?.phone ?? '' } })
+  const passwordForm = useForm<PasswordValues>()
+
   const { data: ordersResp } = useQuery({
     queryKey: ['orders'],
     queryFn: () => ordersApi.history().then((r) => r.data),
@@ -38,19 +37,14 @@ function AccountPage() {
   })
 
   const updateProfileMutation = useMutation({
-    mutationFn: (values: ProfileValues) => authApi.updateProfile({
-      name: values.name,
-      phone: values.phone,
-    }),
+    mutationFn: (values: ProfileValues) => authApi.updateProfile({ name: values.name, phone: values.phone }),
     onSuccess: (res) => {
       const stored = useAuthStore.getState()
       setAuth(res.data.data!, stored.accessToken!, stored.refreshToken!)
       queryClient.invalidateQueries({ queryKey: ['me'] })
-      message.success('Profile updated successfully')
+      toast.success('Profile updated successfully')
     },
-    onError: (err: unknown) => {
-      message.error(getErrorMessage(err, 'Failed to update profile'))
-    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Failed to update profile')),
   })
 
   const changePasswordMutation = useMutation({
@@ -60,206 +54,144 @@ function AccountPage() {
       password_confirmation: values.password_confirmation,
     }),
     onSuccess: () => {
-      message.success('Password changed successfully')
-      passwordForm.resetFields()
+      toast.success('Password changed successfully')
+      passwordForm.reset()
     },
-    onError: (err: unknown) => {
-      message.error(getErrorMessage(err, 'Failed to change password'))
-    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Failed to change password')),
   })
 
   if (!isAuthenticated) {
     return (
-      <div className="page-container section-gap" style={{ textAlign: 'center' }}>
-        <Empty description="Please log in to view your account" />
-        <Link to="/auth/login">
-          <Button type="primary" style={{ marginTop: 16 }}>Sign In</Button>
-        </Link>
+      <div className="page-container section-gap text-center py-20">
+        <p className="text-slate-500 mb-4">Please log in to view your account</p>
+        <Link to="/auth/login"><Button>Sign In</Button></Link>
       </div>
     )
   }
 
-  const orderColumns = [
-    {
-      title: 'Order #',
-      dataIndex: 'order_number',
-      key: 'order_number',
-      render: (num: string, record: Order) => (
-        <Link to="/orders/$id" params={{ id: record.id }}>
-          <Text style={{ color: '#6366f1', fontWeight: 500 }}>#{num}</Text>
-        </Link>
-      ),
-    },
-    {
-      title: 'Date',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (d: string) => dayjs(d).format('MMM D, YYYY'),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (s: OrderStatus) => <OrderStatusBadge status={s} />,
-    },
-    {
-      title: 'Total',
-      dataIndex: 'total',
-      key: 'total',
-      render: (t: number) => <Text strong>${t?.toFixed(2)}</Text>,
-    },
-    {
-      title: '',
-      key: 'actions',
-      render: (_: unknown, record: Order) => (
-        <Link to="/orders/$id" params={{ id: record.id }}>
-          <Button size="small">View</Button>
-        </Link>
-      ),
-    },
-  ]
-
-  const tabItems = [
-    {
-      key: 'profile',
-      label: (
-        <Space>
-          <UserOutlined />
-          Profile
-        </Space>
-      ),
-      children: (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 32 }}>
-            <Avatar
-              size={72}
-              style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', fontSize: 28 }}
-            >
-              {user?.name?.[0]?.toUpperCase()}
-            </Avatar>
-            <div>
-              <Title level={3} style={{ margin: 0 }}>{user?.name}</Title>
-              <Text type="secondary">{user?.email}</Text>
-              <div style={{ marginTop: 4 }}>
-                <Tag color={user?.role === 'admin' ? 'gold' : 'blue'} style={{ textTransform: 'capitalize' }}>
-                  {user?.role}
-                </Tag>
-              </div>
-            </div>
-          </div>
-
-          <Divider />
-
-          <Title level={4} style={{ marginBottom: 20 }}>Update Profile</Title>
-          <Form
-            form={profileForm}
-            layout="vertical"
-            initialValues={{ name: user?.name, phone: user?.phone }}
-            onFinish={updateProfileMutation.mutate}
-            style={{ maxWidth: 500 }}
-          >
-            <Form.Item name="name" label="Full Name" rules={[{ required: true }]}>
-              <Input size="large" prefix={<UserOutlined />} />
-            </Form.Item>
-            <Form.Item name="phone" label="Phone Number">
-              <Input size="large" placeholder="e.g. +1 234 567 8900" />
-            </Form.Item>
-            <Form.Item>
-              <Button type="primary" htmlType="submit" loading={updateProfileMutation.isPending}>
-                Save Changes
-              </Button>
-            </Form.Item>
-          </Form>
-        </div>
-      ),
-    },
-    {
-      key: 'security',
-      label: (
-        <Space>
-          <LockOutlined />
-          Security
-        </Space>
-      ),
-      children: (
-        <div>
-          <Title level={4} style={{ marginBottom: 20 }}>Change Password</Title>
-          <Form
-            form={passwordForm}
-            layout="vertical"
-            onFinish={changePasswordMutation.mutate}
-            style={{ maxWidth: 500 }}
-          >
-            <Form.Item
-              name="current_password"
-              label="Current Password"
-              rules={[{ required: true, message: 'Please enter your current password' }]}
-            >
-              <Input.Password prefix={<LockOutlined />} size="large" />
-            </Form.Item>
-            <Form.Item
-              name="password"
-              label="New Password"
-              rules={[{ required: true, min: 8, message: 'Password must be at least 8 characters' }]}
-            >
-              <Input.Password prefix={<LockOutlined />} size="large" />
-            </Form.Item>
-            <Form.Item
-              name="password_confirmation"
-              label="Confirm New Password"
-              dependencies={['password']}
-              rules={[
-                { required: true, message: 'Please confirm your password' },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    if (!value || getFieldValue('password') === value) return Promise.resolve()
-                    return Promise.reject(new Error('Passwords do not match'))
-                  },
-                }),
-              ]}
-            >
-              <Input.Password prefix={<LockOutlined />} size="large" />
-            </Form.Item>
-            <Form.Item>
-              <Button type="primary" htmlType="submit" loading={changePasswordMutation.isPending} danger>
-                Change Password
-              </Button>
-            </Form.Item>
-          </Form>
-        </div>
-      ),
-    },
-    {
-      key: 'orders',
-      label: (
-        <Space>
-          <ShoppingOutlined />
-          My Orders ({ordersResp?.data?.length ?? 0})
-        </Space>
-      ),
-      children: (
-        <Table
-          dataSource={ordersResp?.data ?? []}
-          columns={orderColumns}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: <Empty description="No orders yet" /> }}
-        />
-      ),
-    },
-  ]
+  const orders = ordersResp?.data ?? []
 
   return (
     <div className="page-container section-gap">
-      <Title level={2} style={{ marginBottom: 32 }}>My Account</Title>
+      <h2 className="text-2xl font-bold mb-8">My Account</h2>
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
+        <Tabs defaultValue="profile">
+          <TabsList className="mb-8">
+            <TabsTrigger value="profile" className="gap-2"><User className="w-4 h-4" />Profile</TabsTrigger>
+            <TabsTrigger value="security" className="gap-2"><Lock className="w-4 h-4" />Security</TabsTrigger>
+            <TabsTrigger value="orders" className="gap-2">
+              <ShoppingBag className="w-4 h-4" />My Orders ({orders.length})
+            </TabsTrigger>
+          </TabsList>
 
-      <Row gutter={32}>
-        <Col xs={24}>
-          <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-            <Tabs items={tabItems} size="large" />
-          </Card>
-        </Col>
-      </Row>
+          {/* Profile Tab */}
+          <TabsContent value="profile">
+            <div className="flex items-center gap-6 mb-8">
+              <div className="w-16 h-16 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shrink-0">
+                {user?.name?.[0]?.toUpperCase()}
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">{user?.name}</h3>
+                <p className="text-slate-400 text-sm">{user?.email}</p>
+                <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full mt-1 inline-block capitalize',
+                  user?.role === 'admin' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700')}>
+                  {user?.role}
+                </span>
+              </div>
+            </div>
+            <hr className="border-slate-100 mb-6" />
+            <h4 className="font-bold mb-5">Update Profile</h4>
+            <form onSubmit={profileForm.handleSubmit((v) => updateProfileMutation.mutate(v))} className="max-w-sm space-y-4">
+              <div>
+                <Label htmlFor="pname">Full Name</Label>
+                <Input id="pname" className="mt-1" {...profileForm.register('name', { required: true })} />
+              </div>
+              <div>
+                <Label htmlFor="pphone">Phone Number</Label>
+                <Input id="pphone" className="mt-1" placeholder="+1 234 567 8900" {...profileForm.register('phone')} />
+              </div>
+              <Button type="submit" disabled={updateProfileMutation.isPending}>
+                {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </form>
+          </TabsContent>
+
+          {/* Security Tab */}
+          <TabsContent value="security">
+            <h4 className="font-bold mb-5">Change Password</h4>
+            <form onSubmit={passwordForm.handleSubmit((v) => changePasswordMutation.mutate(v))} className="max-w-sm space-y-4">
+              <div>
+                <Label>Current Password</Label>
+                <Input type="password" className="mt-1"
+                  {...passwordForm.register('current_password', { required: true })} />
+              </div>
+              <div>
+                <Label>New Password</Label>
+                <Input type="password" className="mt-1"
+                  {...passwordForm.register('password', { required: true, minLength: 8 })} />
+                {passwordForm.formState.errors.password && (
+                  <p className="text-red-500 text-xs mt-1">Must be at least 8 characters</p>
+                )}
+              </div>
+              <div>
+                <Label>Confirm New Password</Label>
+                <Input type="password" className="mt-1"
+                  {...passwordForm.register('password_confirmation', {
+                    required: true,
+                    validate: (v) => v === passwordForm.watch('password') || 'Passwords do not match',
+                  })} />
+                {passwordForm.formState.errors.password_confirmation && (
+                  <p className="text-red-500 text-xs mt-1">{passwordForm.formState.errors.password_confirmation.message}</p>
+                )}
+              </div>
+              <Button type="submit" variant="destructive" disabled={changePasswordMutation.isPending}>
+                {changePasswordMutation.isPending ? 'Changing...' : 'Change Password'}
+              </Button>
+            </form>
+          </TabsContent>
+
+          {/* Orders Tab */}
+          <TabsContent value="orders">
+            {orders.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">No orders yet</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-slate-500 text-xs uppercase tracking-wide">
+                      <th className="text-left py-3 pr-4 font-semibold">Order #</th>
+                      <th className="text-left py-3 pr-4 font-semibold">Date</th>
+                      <th className="text-left py-3 pr-4 font-semibold">Status</th>
+                      <th className="text-left py-3 pr-4 font-semibold">Total</th>
+                      <th className="py-3" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order: Order) => (
+                      <tr key={order.id} className="border-b border-slate-50 last:border-0">
+                        <td className="py-4 pr-4">
+                          <Link to="/orders/$id" params={{ id: order.id }} search={{ success: undefined }}
+                            className="text-indigo-600 font-semibold hover:underline">
+                            #{order.order_number}
+                          </Link>
+                        </td>
+                        <td className="py-4 pr-4 text-slate-500">{dayjs(order.created_at).format('MMM D, YYYY')}</td>
+                        <td className="py-4 pr-4"><OrderStatusBadge status={order.status as OrderStatus} /></td>
+                        <td className="py-4 pr-4 font-semibold">৳{order.total?.toFixed(2)}</td>
+                        <td className="py-4">
+                          <Link to="/orders/$id" params={{ id: order.id }} search={{ success: undefined }}>
+                            <Button variant="ghost" size="sm"><Eye className="w-4 h-4" /></Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

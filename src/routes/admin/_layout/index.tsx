@@ -1,18 +1,14 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
-  Typography, Row, Col, Card, Statistic, Skeleton,
-  Space, Tag, Button, Progress, Divider,
-} from 'antd'
-import {
-  ShoppingOutlined, UserOutlined, DollarOutlined, InboxOutlined,
-  ArrowUpOutlined, ArrowDownOutlined, ClockCircleOutlined,
-  CheckCircleOutlined, SyncOutlined, CarOutlined,
-  WarningOutlined, RightOutlined,
-} from '@ant-design/icons'
+  ShoppingBag, Users, DollarSign, Package,
+  TrendingUp, TrendingDown, Clock, CheckCircle2,
+  RefreshCw, Truck, AlertTriangle, ChevronRight,
+} from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { adminApi } from '@/api/admin'
-
-const { Title, Text } = Typography
+import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/admin/_layout/')({
   component: AdminDashboard,
@@ -21,7 +17,7 @@ export const Route = createFileRoute('/admin/_layout/')({
 interface StatCardProps {
   title: string
   value: number | string | undefined
-  prefix?: React.ReactNode
+  prefix?: string
   suffix?: string
   color: string
   bgColor: string
@@ -33,51 +29,50 @@ interface StatCardProps {
 }
 
 function StatCard({ title, value, prefix, suffix, color, bgColor, icon, trend, trendLabel, loading, precision }: StatCardProps) {
-  // Ensure value is a number for Statistic component
   const numericValue = value !== undefined && value !== null ? Number(value) : 0
-  
+  const displayValue = precision ? numericValue.toFixed(precision) : numericValue.toLocaleString()
+
   return (
-    <Card
-      className="stats-card"
-      bordered={false}
-      style={{ borderTop: `3px solid ${color}` }}
-    >
+    <div className="bg-white rounded-xl shadow-sm p-5 border-t-[3px]" style={{ borderTopColor: color }}>
       {loading ? (
-        <Skeleton active paragraph={{ rows: 2 }} />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-3 w-20" />
+        </div>
       ) : (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1 }}>
-            <Text style={{ fontSize: 12.5, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
-              {title}
-            </Text>
-            <Statistic
-              value={numericValue}
-              prefix={prefix}
-              suffix={suffix}
-              precision={precision}
-              valueStyle={{ fontSize: 28, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', lineHeight: 1.1 }}
-            />
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">{title}</p>
+            <p className="text-3xl font-extrabold text-slate-900 leading-none tracking-tight">
+              {prefix}{displayValue}{suffix}
+            </p>
             {trend !== undefined && (
-              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div className="mt-2 flex items-center gap-1">
                 {trend >= 0
-                  ? <ArrowUpOutlined style={{ color: '#22c55e', fontSize: 12 }} />
-                  : <ArrowDownOutlined style={{ color: '#ef4444', fontSize: 12 }} />}
-                <Text style={{ fontSize: 12, color: trend >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                  ? <TrendingUp className="h-3 w-3 text-green-500" />
+                  : <TrendingDown className="h-3 w-3 text-red-500" />}
+                <span className={cn('text-xs font-semibold', trend >= 0 ? 'text-green-500' : 'text-red-500')}>
                   {Math.abs(trend)}%
-                </Text>
-                {trendLabel && <Text style={{ fontSize: 12, color: '#94a3b8' }}>{trendLabel}</Text>}
+                </span>
+                {trendLabel && <span className="text-xs text-slate-400">{trendLabel}</span>}
               </div>
             )}
           </div>
-          <div
-            className="stats-card-icon"
-            style={{ background: bgColor, color }}
-          >
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: bgColor, color }}>
             {icon}
           </div>
         </div>
       )}
-    </Card>
+    </div>
+  )
+}
+
+function ProgressBar({ percent, color }: { percent: number; color: string }) {
+  return (
+    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(percent, 100)}%`, background: color }} />
+    </div>
   )
 }
 
@@ -99,263 +94,167 @@ function AdminDashboard() {
 
   const loading = orderLoading || userLoading || invLoading
 
-  // Compute total active orders (confirmed + processing + shipped)
   const activeOrders = (orderStats?.confirmed ?? 0) + (orderStats?.processing ?? 0) + (orderStats?.shipped ?? 0)
   const totalOrders = orderStats?.total_orders || 1
   const deliveredPct = Math.round(((orderStats?.delivered ?? 0) / totalOrders) * 100)
   const cancelledPct = Math.round(((orderStats?.cancelled ?? 0) / totalOrders) * 100)
 
   const ORDER_STATUSES = [
-    { label: 'Pending',    count: orderStats?.pending,    icon: <ClockCircleOutlined />,  color: '#f59e0b', bg: '#fef3c7', status: 'pending' },
-    { label: 'Confirmed',  count: orderStats?.confirmed ?? 0, icon: <CheckCircleOutlined />, color: '#3b82f6', bg: '#dbeafe', status: 'confirmed' },
-    { label: 'Processing', count: orderStats?.processing, icon: <SyncOutlined spin />,   color: '#8b5cf6', bg: '#ede9fe', status: 'processing' },
-    { label: 'Shipped',    count: orderStats?.shipped,    icon: <CarOutlined />,          color: '#0ea5e9', bg: '#e0f2fe', status: 'shipped' },
-    { label: 'Delivered',  count: orderStats?.delivered,  icon: <CheckCircleOutlined />,  color: '#22c55e', bg: '#dcfce7', status: 'delivered' },
-    { label: 'Cancelled',  count: orderStats?.cancelled,  icon: <WarningOutlined />,      color: '#ef4444', bg: '#fee2e2', status: 'cancelled' },
+    { label: 'Pending',    count: orderStats?.pending,    icon: <Clock className="h-5 w-5" />,         color: '#f59e0b', bg: '#fef3c7' },
+    { label: 'Confirmed',  count: orderStats?.confirmed,  icon: <CheckCircle2 className="h-5 w-5" />,  color: '#3b82f6', bg: '#dbeafe' },
+    { label: 'Processing', count: orderStats?.processing, icon: <RefreshCw className="h-5 w-5" />,     color: '#8b5cf6', bg: '#ede9fe' },
+    { label: 'Shipped',    count: orderStats?.shipped,    icon: <Truck className="h-5 w-5" />,         color: '#0ea5e9', bg: '#e0f2fe' },
+    { label: 'Delivered',  count: orderStats?.delivered,  icon: <CheckCircle2 className="h-5 w-5" />,  color: '#22c55e', bg: '#dcfce7' },
+    { label: 'Cancelled',  count: orderStats?.cancelled,  icon: <AlertTriangle className="h-5 w-5" />, color: '#ef4444', bg: '#fee2e2' },
   ]
 
   return (
-    <div className="fade-in">
-      {/* ── Page Header ── */}
-      <div style={{ marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+    <div>
+      {/* Page Header */}
+      <div className="mb-7 flex flex-wrap justify-between items-start gap-3">
         <div>
-          <Title level={3} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.03em' }}>
-            Dashboard
-          </Title>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>
-            Welcome back! Here's what's happening with your store.
-          </Text>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Welcome back! Here's what's happening with your store.</p>
         </div>
-        <Space>
+        <div className="flex gap-2">
           <Link to="/admin/products">
-            <Button icon={<ShoppingOutlined />}>View Products</Button>
+            <Button variant="outline" size="sm" className="gap-1.5"><ShoppingBag className="h-4 w-4" />View Products</Button>
           </Link>
           <Link to="/admin/orders">
-            <Button type="primary" icon={<RightOutlined />}>All Orders</Button>
+            <Button size="sm" className="gap-1.5">All Orders<ChevronRight className="h-4 w-4" /></Button>
           </Link>
-        </Space>
+        </div>
       </div>
 
-      {/* ── KPI Cards ── */}
-      <Row gutter={[18, 18]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <StatCard
-            title="Total Revenue"
-            value={orderStats?.total_revenue}
-            prefix={<DollarOutlined />}
-            precision={2}
-            color="#22c55e"
-            bgColor="#dcfce7"
-            icon={<DollarOutlined />}
-            loading={loading}
-          />
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <StatCard
-            title="Total Orders"
-            value={orderStats?.total_orders}
-            prefix={<ShoppingOutlined />}
-            color="#f97316"
-            bgColor="#ffedd5"
-            icon={<ShoppingOutlined />}
-            loading={loading}
-          />
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <StatCard
-            title="Active Users"
-            value={userStats?.active_users}
-            prefix={<UserOutlined />}
-            color="#0ea5e9"
-            bgColor="#e0f2fe"
-            icon={<UserOutlined />}
-            loading={loading}
-          />
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <StatCard
-            title="Low Stock Items"
-            value={inventoryStats?.low_stock}
-            prefix={<InboxOutlined />}
-            color={(inventoryStats?.low_stock ?? 0) > 0 ? '#ef4444' : '#22c55e'}
-            bgColor={(inventoryStats?.low_stock ?? 0) > 0 ? '#fee2e2' : '#dcfce7'}
-            icon={<InboxOutlined />}
-            loading={loading}
-          />
-        </Col>
-      </Row>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard title="Total Revenue" value={orderStats?.total_revenue} prefix="৳" precision={2}
+          color="#22c55e" bgColor="#dcfce7" icon={<DollarSign className="h-5 w-5" />} loading={loading} />
+        <StatCard title="Total Orders" value={orderStats?.total_orders}
+          color="#f97316" bgColor="#ffedd5" icon={<ShoppingBag className="h-5 w-5" />} loading={loading} />
+        <StatCard title="Active Users" value={userStats?.active_users}
+          color="#0ea5e9" bgColor="#e0f2fe" icon={<Users className="h-5 w-5" />} loading={loading} />
+        <StatCard title="Low Stock Items" value={inventoryStats?.low_stock}
+          color={(inventoryStats?.low_stock ?? 0) > 0 ? '#ef4444' : '#22c55e'}
+          bgColor={(inventoryStats?.low_stock ?? 0) > 0 ? '#fee2e2' : '#dcfce7'}
+          icon={<Package className="h-5 w-5" />} loading={loading} />
+      </div>
 
-      <Row gutter={[18, 18]} style={{ marginBottom: 24 }}>
-        {/* ── Today's Performance ── */}
-        <Col xs={24} lg={8}>
-          <Card
-            title={<span style={{ fontWeight: 700, fontSize: 15 }}>Today's Performance</span>}
-            bordered={false}
-            className="stats-card"
-            extra={<Tag color="green">Live</Tag>}
-          >
-            {loading ? <Skeleton active /> : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <Text style={{ fontSize: 13, color: '#64748b' }}>Today's Revenue</Text>
-                    <Text strong style={{ color: '#22c55e' }}>${Number(orderStats?.today_revenue ?? 0).toFixed(2)}</Text>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <Text style={{ fontSize: 13, color: '#64748b' }}>New Orders Today</Text>
-                    <Text strong style={{ color: '#f97316' }}>{orderStats?.today_orders ?? 0}</Text>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <Text style={{ fontSize: 13, color: '#64748b' }}>New Users Today</Text>
-                    <Text strong style={{ color: '#0ea5e9' }}>{userStats?.new_today ?? 0}</Text>
-                  </div>
-                </div>
-
-                <Divider style={{ margin: 0 }} />
-
-                <div>
-                  <Text style={{ fontSize: 13, color: '#64748b', display: 'block', marginBottom: 10 }}>Order Completion Rate</Text>
-                  <Progress
-                    percent={deliveredPct}
-                    strokeColor={{ from: '#f97316', to: '#22c55e' }}
-                    format={(pct) => <Text strong style={{ fontSize: 13 }}>{pct}%</Text>}
-                  />
-                  <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, display: 'block' }}>
-                    {orderStats?.delivered ?? 0} of {totalOrders} orders delivered
-                  </Text>
-                </div>
-
-                <div>
-                  <Text style={{ fontSize: 13, color: '#64748b', display: 'block', marginBottom: 10 }}>Cancellation Rate</Text>
-                  <Progress
-                    percent={cancelledPct}
-                    strokeColor="#ef4444"
-                    trailColor="#fee2e2"
-                    format={(pct) => <Text strong style={{ fontSize: 13, color: '#ef4444' }}>{pct}%</Text>}
-                  />
-                </div>
-              </div>
-            )}
-          </Card>
-        </Col>
-
-        {/* ── User Statistics ── */}
-        <Col xs={24} lg={8}>
-          <Card
-            title={<span style={{ fontWeight: 700, fontSize: 15 }}>User Overview</span>}
-            bordered={false}
-            className="stats-card"
-            extra={<Link to="/admin/users"><Button type="link" size="small" style={{ padding: 0, fontSize: 13 }}>View All</Button></Link>}
-          >
-            {loading ? <Skeleton active /> : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {[
-                  { label: 'Total Users',    value: userStats?.total_users,     color: '#f97316', icon: '👥' },
-                  { label: 'Customers',      value: userStats?.total_customers,  color: '#0ea5e9', icon: '🛒' },
-                  { label: 'Admins',         value: userStats?.total_admins,     color: '#8b5cf6', icon: '🔧' },
-                  { label: 'New This Month', value: userStats?.new_this_month,   color: '#22c55e', icon: '✨' },
-                ].map(({ label, value, color, icon }) => (
-                  <div key={label} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '10px 12px', background: '#f8fafc', borderRadius: 10,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 18 }}>{icon}</span>
-                      <Text style={{ fontSize: 13.5, color: '#475569' }}>{label}</Text>
-                    </div>
-                    <Text strong style={{ color, fontSize: 16 }}>{value ?? 0}</Text>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </Col>
-
-        {/* ── Inventory Health ── */}
-        <Col xs={24} lg={8}>
-          <Card
-            title={<span style={{ fontWeight: 700, fontSize: 15 }}>Inventory Health</span>}
-            bordered={false}
-            className="stats-card"
-            extra={<Link to="/admin/inventory"><Button type="link" size="small" style={{ padding: 0, fontSize: 13 }}>Manage</Button></Link>}
-          >
-            {loading ? <Skeleton active /> : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{
-                  background: 'linear-gradient(135deg, #fff7ed, #ffedd5)',
-                  borderRadius: 12, padding: '16px',
-                  border: '1px solid #fed7aa',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text style={{ fontSize: 13, color: '#64748b' }}>Total Products</Text>
-                    <Text strong style={{ color: '#f97316', fontSize: 18 }}>{inventoryStats?.total_products ?? 0}</Text>
-                  </div>
-                  <Text style={{ fontSize: 12, color: '#94a3b8' }}>
-                    {inventoryStats?.active_products ?? 0} active
-                  </Text>
-                </div>
-
-                {[
-                  { label: 'Out of Stock', value: inventoryStats?.out_of_stock, color: '#ef4444', bg: '#fee2e2', warn: true },
-                  { label: 'Low Stock',    value: inventoryStats?.low_stock,    color: '#f59e0b', bg: '#fef3c7', warn: true },
-                  { label: 'Variants OOS', value: inventoryStats?.variants_out_of_stock, color: '#8b5cf6', bg: '#ede9fe', warn: false },
-                ].map(({ label, value, color, bg, warn }) => (
-                  <div key={label} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '8px 12px', borderRadius: 8,
-                    background: (value ?? 0) > 0 && warn ? bg : '#f8fafc',
-                  }}>
-                    <Text style={{ fontSize: 13, color: '#475569' }}>
-                      {warn && (value ?? 0) > 0 && <WarningOutlined style={{ marginRight: 6, color }} />}
-                      {label}
-                    </Text>
-                    <Text strong style={{ color: (value ?? 0) > 0 ? color : '#22c55e', fontSize: 15 }}>
-                      {value ?? 0}
-                    </Text>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </Col>
-      </Row>
-
-      {/* ── Order Status Breakdown ── */}
-      <Card
-        title={<span style={{ fontWeight: 700, fontSize: 15 }}>Order Status Breakdown</span>}
-        bordered={false}
-        className="stats-card"
-        extra={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', padding: '3px 10px', borderRadius: 20 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse-ring 2s ease infinite' }} />
-            <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>{activeOrders} Active</Text>
+      {/* Section Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Today's Performance */}
+        <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="flex justify-between items-center mb-5">
+            <h3 className="font-bold text-slate-800">Today's Performance</h3>
+            <span className="text-xs bg-green-50 text-green-700 font-semibold px-2.5 py-1 rounded-full">Live</span>
           </div>
-        }
-      >
-        {loading ? <Skeleton active /> : (
-          <Row gutter={[12, 12]}>
-            {ORDER_STATUSES.map(({ label, count, icon, color, bg }) => (
-              <Col xs={12} sm={8} md={4} key={label}>
-                <div style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  padding: '16px 12px', background: bg, borderRadius: 12,
-                  border: `1px solid ${color}22`, textAlign: 'center',
-                  transition: 'transform 0.15s',
-                }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)')}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.transform = '')}
-                >
-                  <span style={{ fontSize: 20, color, marginBottom: 6 }}>{icon}</span>
-                  <Text strong style={{ fontSize: 22, color: '#0f172a', lineHeight: 1.1, display: 'block' }}>
-                    {count ?? 0}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{label}</Text>
+          {loading ? <div className="space-y-3"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/4" /></div> : (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Today's Revenue</span><span className="font-semibold text-green-600">৳{Number(orderStats?.today_revenue ?? 0).toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">New Orders Today</span><span className="font-semibold text-orange-500">{orderStats?.today_orders ?? 0}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">New Users Today</span><span className="font-semibold text-sky-500">{userStats?.new_today ?? 0}</span></div>
+              </div>
+              <hr className="border-slate-100" />
+              <div>
+                <p className="text-sm text-slate-500 mb-2">Order Completion Rate</p>
+                <ProgressBar percent={deliveredPct} color="linear-gradient(90deg, #f97316, #22c55e)" />
+                <p className="text-xs text-slate-400 mt-1">{orderStats?.delivered ?? 0} of {totalOrders} orders delivered — <strong className="text-slate-600">{deliveredPct}%</strong></p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500 mb-2">Cancellation Rate</p>
+                <ProgressBar percent={cancelledPct} color="#ef4444" />
+                <p className="text-xs mt-1 font-semibold text-red-400">{cancelledPct}%</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User Overview */}
+        <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="flex justify-between items-center mb-5">
+            <h3 className="font-bold text-slate-800">User Overview</h3>
+            <Link to="/admin/users"><button className="text-xs text-indigo-600 font-medium hover:underline">View All</button></Link>
+          </div>
+          {loading ? <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div> : (
+            <div className="space-y-3">
+              {[
+                { label: 'Total Users',    value: userStats?.total_users,    color: '#f97316', icon: '👥' },
+                { label: 'Customers',      value: userStats?.total_customers, color: '#0ea5e9', icon: '🛒' },
+                { label: 'Admins',         value: userStats?.total_admins,    color: '#8b5cf6', icon: '🔧' },
+                { label: 'New This Month', value: userStats?.new_this_month,  color: '#22c55e', icon: '✨' },
+              ].map(({ label, value, color, icon }) => (
+                <div key={label} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-lg">{icon}</span>
+                    <span className="text-sm text-slate-600">{label}</span>
+                  </div>
+                  <span className="font-bold text-base" style={{ color }}>{value ?? 0}</span>
                 </div>
-              </Col>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Inventory Health */}
+        <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="flex justify-between items-center mb-5">
+            <h3 className="font-bold text-slate-800">Inventory Health</h3>
+            <Link to="/admin/inventory"><button className="text-xs text-indigo-600 font-medium hover:underline">Manage</button></Link>
+          </div>
+          {loading ? <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div> : (
+            <div className="space-y-3">
+              <div className="bg-linear-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm text-slate-500">Total Products</span>
+                  <span className="font-bold text-lg text-orange-500">{inventoryStats?.total_products ?? 0}</span>
+                </div>
+                <p className="text-xs text-slate-400">{inventoryStats?.active_products ?? 0} active</p>
+              </div>
+              {[
+                { label: 'Out of Stock',  value: inventoryStats?.out_of_stock,           color: '#ef4444', bg: '#fee2e2', warn: true },
+                { label: 'Low Stock',     value: inventoryStats?.low_stock,              color: '#f59e0b', bg: '#fef3c7', warn: true },
+                { label: 'Variants OOS',  value: inventoryStats?.variants_out_of_stock,  color: '#8b5cf6', bg: '#ede9fe', warn: false },
+              ].map(({ label, value, color, bg, warn }) => (
+                <div key={label} className="flex items-center justify-between rounded-lg px-3 py-2" style={{ background: (value ?? 0) > 0 && warn ? bg : '#f8fafc' }}>
+                  <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                    {warn && (value ?? 0) > 0 && <AlertTriangle className="h-3.5 w-3.5" style={{ color }} />}
+                    {label}
+                  </div>
+                  <span className="font-bold text-sm" style={{ color: (value ?? 0) > 0 ? color : '#22c55e' }}>{value ?? 0}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Order Status Breakdown */}
+      <div className="bg-white rounded-xl shadow-sm p-5">
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="font-bold text-slate-800">Order Status Breakdown</h3>
+          <div className="flex items-center gap-1.5 bg-green-50 px-3 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-xs text-green-700 font-semibold">{activeOrders} Active</span>
+          </div>
+        </div>
+        {loading ? (
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            {ORDER_STATUSES.map(({ label, count, icon, color, bg }) => (
+              <div key={label} className="flex flex-col items-center text-center py-4 px-2 rounded-xl border transition-transform hover:-translate-y-0.5 cursor-default"
+                style={{ background: bg, borderColor: `${color}22` }}>
+                <span style={{ color }} className="mb-1.5">{icon}</span>
+                <span className="text-2xl font-extrabold text-slate-900 leading-none">{count ?? 0}</span>
+                <span className="text-xs text-slate-500 mt-1">{label}</span>
+              </div>
             ))}
-          </Row>
+          </div>
         )}
-      </Card>
+      </div>
     </div>
   )
 }

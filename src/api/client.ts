@@ -55,7 +55,9 @@ apiClient.interceptors.response.use(
       const refreshToken = localStorage.getItem('refresh_token')
 
       if (!refreshToken) {
-        localStorage.clear()
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('laracom-auth')
         window.location.href = '/auth/login'
         return Promise.reject(error)
       }
@@ -82,7 +84,10 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest)
       } catch (err) {
         processQueue(err, null)
-        localStorage.clear()
+        // Targeted auth-only clear — do NOT wipe all localStorage
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('laracom-auth')
         window.location.href = '/auth/login'
         return Promise.reject(err)
       } finally {

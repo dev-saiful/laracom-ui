@@ -1,43 +1,32 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
-  Badge, Button, Dropdown, Input, Space, Avatar, Drawer,
-  Typography, Divider,
-} from 'antd'
-import {
-  ShoppingCartOutlined,
-  UserOutlined,
-  MenuOutlined,
-  LogoutOutlined,
-  OrderedListOutlined,
-  DashboardOutlined,
-  LoginOutlined,
-  SettingOutlined,
-  HomeOutlined,
-  AppstoreOutlined,
-  EnvironmentOutlined,
-  CloseOutlined,
-  PhoneOutlined,
-  TagOutlined,
-  HeartOutlined,
-} from '@ant-design/icons'
+  ShoppingCart, User, Menu, LogOut, ListOrdered,
+  LayoutDashboard, LogIn, Settings, Home, Grid3x3,
+  MapPin, X, Phone, Tag, Heart, Search,
+} from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useQuery } from '@tanstack/react-query'
 import { cartApi } from '@/api/cart'
 import { wishlistApi } from '@/api/wishlist'
 import { authApi } from '@/api/auth'
-import { App } from 'antd'
-
-const { Text } = Typography
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
+} from '@/components/ui/sheet'
 
 const NAV_LINKS = [
-  { to: '/',         label: 'Home',        icon: <HomeOutlined />,        exact: true },
-  { to: '/products', label: 'All Products', icon: <AppstoreOutlined /> },
-  { to: '/track',    label: 'Track Order', icon: <EnvironmentOutlined /> },
+  { to: '/',         label: 'Home',         icon: <Home className="h-4 w-4" />,       exact: true },
+  { to: '/products', label: 'All Products', icon: <Grid3x3 className="h-4 w-4" /> },
+  { to: '/track',    label: 'Track Order',  icon: <MapPin className="h-4 w-4" /> },
 ]
 
 export default function Navbar() {
-  const { message } = App.useApp()
   const navigate = useNavigate()
   const { user, isAuthenticated, isAdmin, clearAuth } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -56,10 +45,9 @@ export default function Navbar() {
   const { data: cartCount } = useQuery({
     queryKey: ['cart-count'],
     queryFn: () => cartApi.count().then((r) => r.data.data.count),
-    staleTime: 5 * 60 * 1000,        // Consider fresh for 5 minutes
-    refetchOnWindowFocus: false,      // Don't refetch on tab switch
-    refetchOnReconnect: false,        // Don't refetch on network reconnect
-    // Cart count updates via invalidateQueries when cart changes
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 
   const { data: wishlistCount } = useQuery({
@@ -68,13 +56,13 @@ export default function Navbar() {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    enabled: isAuthenticated,  // Only fetch when logged in
+    enabled: isAuthenticated,
   })
 
   const handleLogout = async () => {
     try { await authApi.logout() } catch { /* ignored */ }
     clearAuth()
-    message.success('Logged out successfully')
+    toast.success('Logged out successfully')
     navigate({ to: '/' })
     setMobileOpen(false)
   }
@@ -90,36 +78,10 @@ export default function Navbar() {
   const isLinkActive = (to: string, exact = false) =>
     exact ? currentPath === to : currentPath.startsWith(to)
 
-  const userMenuItems = isAuthenticated
-    ? [
-        {
-          key: 'profile-info',
-          label: (
-            <div style={{ padding: '4px 0' }}>
-              <Text strong style={{ display: 'block', fontSize: 14 }}>{user?.name}</Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>{user?.email}</Text>
-            </div>
-          ),
-          disabled: true,
-        },
-        { type: 'divider' as const },
-        ...(isAdmin
-          ? [{ key: 'dashboard', label: <Link to="/admin">Admin Dashboard</Link>, icon: <DashboardOutlined /> }]
-          : []),
-        { key: 'account', label: <Link to="/account">My Account</Link>, icon: <SettingOutlined /> },
-        { key: 'orders',  label: <Link to="/orders">My Orders</Link>,   icon: <OrderedListOutlined /> },
-        { type: 'divider' as const },
-        { key: 'logout', label: 'Logout', icon: <LogoutOutlined />, danger: true, onClick: handleLogout },
-      ]
-    : [
-        { key: 'login',    label: <Link to="/auth/login">Sign In</Link>,          icon: <LoginOutlined /> },
-        { key: 'register', label: <Link to="/auth/register">Create Account</Link>, icon: <UserOutlined /> },
-      ]
-
   return (
     <header className={`app-navbar${scrolled ? ' scrolled' : ''}`}>
 
-      {/* ── Announcement Bar ── */}
+      {/* Announcement Bar */}
       <div className="navbar-announcement">
         <div className="page-container">
           <div className="navbar-announcement-inner">
@@ -128,60 +90,62 @@ export default function Navbar() {
             </span>
             <span className="navbar-announcement-divider" />
             <span className="navbar-announcement-item">
-              <TagOutlined /> Use code <strong>SAVE10</strong> for 10% off
+              <Tag className="inline h-3 w-3 mr-1" /> Use code <strong>SAVE10</strong> for 10% off
             </span>
             <span className="navbar-announcement-divider" />
             <span className="navbar-announcement-item">
-              <PhoneOutlined /> Support: <strong>Mon–Fri 9am–6pm</strong>
+              <Phone className="inline h-3 w-3 mr-1" /> Support: <strong>Mon–Fri 9am–6pm</strong>
             </span>
           </div>
         </div>
       </div>
 
-      {/* ── Main Header ── */}
+      {/* Main Header */}
       <div className="navbar-main">
         <div className="page-container navbar-main-inner">
 
           {/* Logo */}
-          <Link to="/" style={{ textDecoration: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9 }}>
-            <span style={{
-              width: 38, height: 38,
-              background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-              borderRadius: 10,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 19, boxShadow: '0 4px 12px rgb(249 115 22 / 0.40)',
-            }}>
-              🛍️
+          <Link to="/" className="no-underline shrink-0 flex items-center gap-2" style={{ textDecoration: 'none' }}>
+            <span className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shadow-lg shadow-indigo-200"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              ✨
             </span>
-            <span style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.04em', lineHeight: 1 }}>
-              Lara<span style={{ color: '#f97316' }}>com</span>
+            <span className="text-xl font-black text-slate-900 tracking-tight">
+              Lara<span className="text-indigo-500">com</span>
             </span>
           </Link>
 
-          {/* ── Search Bar (desktop) ── */}
+          {/* Search (desktop) */}
           <div className="navbar-search-wrap desktop-only">
-            <Input.Search
-              aria-label="Search products"
-              placeholder="Search for products, brands and more…"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              onSearch={handleSearch}
-              allowClear
-              size="large"
-              className="navbar-search-input"
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                aria-label="Search products"
+                placeholder="Search for products, brands and more…"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchValue)}
+                className="navbar-search-input pl-9 pr-10"
+              />
+              {searchValue && (
+                <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" onClick={() => setSearchValue('')}>
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* ── Right Action Icons ── */}
+          {/* Right Actions */}
           <div className="navbar-actions">
+
             {/* Wishlist */}
             <button
               className="navbar-icon-btn desktop-only"
               aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ''}`}
               onClick={() => isAuthenticated ? navigate({ to: '/wishlist' }) : navigate({ to: '/auth/login' })}
             >
-              <span style={{ position: 'relative', display: 'inline-flex' }}>
-                <HeartOutlined style={{ fontSize: 20 }} />
+              <span className="relative inline-flex">
+                <Heart className="h-5 w-5" />
                 {isAuthenticated && (wishlistCount ?? 0) > 0 && (
                   <span className="navbar-cart-badge">{wishlistCount! > 99 ? '99+' : wishlistCount}</span>
                 )}
@@ -195,8 +159,8 @@ export default function Navbar() {
               aria-label={`Shopping cart${cartCount ? `, ${cartCount} items` : ''}`}
               onClick={() => navigate({ to: '/cart' })}
             >
-              <span style={{ position: 'relative', display: 'inline-flex' }}>
-                <ShoppingCartOutlined style={{ fontSize: 22 }} />
+              <span className="relative inline-flex">
+                <ShoppingCart className="h-5.5 w-5.5" style={{ width: 22, height: 22 }} />
                 {(cartCount ?? 0) > 0 && (
                   <span className="navbar-cart-badge">{cartCount! > 99 ? '99+' : cartCount}</span>
                 )}
@@ -204,45 +168,173 @@ export default function Navbar() {
               <span className="navbar-icon-label">Cart</span>
             </button>
 
-            {/* Account */}
-            <Dropdown
-              menu={{ items: userMenuItems }}
-              placement="bottomRight"
-              trigger={['click']}
-              arrow={{ pointAtCenter: true }}
-            >
-              <button className="navbar-icon-btn" aria-label="Account menu">
-                <Avatar
-                  size={24}
-                  icon={<UserOutlined />}
-                  style={{
-                    background: isAuthenticated
-                      ? 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)'
-                      : '#cbd5e1',
-                    fontSize: 13,
-                    flexShrink: 0,
-                  }}
-                />
-                <span className="navbar-icon-label">
-                  {isAuthenticated ? user?.name?.split(' ')[0] : 'Account'}
-                </span>
-              </button>
-            </Dropdown>
+            {/* Account Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="navbar-icon-btn" aria-label="Account menu">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                    style={{ background: isAuthenticated ? 'linear-gradient(135deg, #f97316, #ea580c)' : '#cbd5e1' }}>
+                    {isAuthenticated ? user?.name?.[0]?.toUpperCase() : <User className="h-3.5 w-3.5 text-slate-500" />}
+                  </div>
+                  <span className="navbar-icon-label">
+                    {isAuthenticated ? user?.name?.split(' ')[0] : 'Account'}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {isAuthenticated ? (
+                  <>
+                    <DropdownMenuLabel>
+                      <p className="font-semibold text-sm text-slate-800">{user?.name}</p>
+                      <p className="text-xs text-slate-400 font-normal">{user?.email}</p>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex items-center gap-2 cursor-pointer">
+                          <LayoutDashboard className="h-4 w-4" />Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem asChild>
+                      <Link to="/account" className="flex items-center gap-2 cursor-pointer">
+                        <Settings className="h-4 w-4" />My Account
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/orders" search={{ page: 1 }} className="flex items-center gap-2 cursor-pointer">
+                        <ListOrdered className="h-4 w-4" />My Orders
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-600 focus:text-red-600 gap-2 cursor-pointer" onClick={handleLogout}>
+                      <LogOut className="h-4 w-4" />Logout
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link to="/auth/login" className="flex items-center gap-2 cursor-pointer">
+                        <LogIn className="h-4 w-4" />Sign In
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/auth/register" className="flex items-center gap-2 cursor-pointer">
+                        <User className="h-4 w-4" />Create Account
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Mobile Hamburger */}
-            <Button
-              type="text"
-              aria-label="Open navigation menu"
-              icon={<MenuOutlined style={{ fontSize: 18 }} />}
-              onClick={() => setMobileOpen(true)}
-              className="mobile-menu-btn"
-              style={{ height: 40, width: 40, borderRadius: 10 }}
-            />
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <button className="mobile-menu-btn navbar-icon-btn" aria-label="Open navigation menu">
+                  <Menu className="h-5 w-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72 p-0">
+                <SheetHeader className="px-5 py-4 border-b border-slate-100">
+                  <SheetTitle className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
+                      style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}>🛍️</span>
+                    <span className="font-black text-slate-900">Lara<span className="text-orange-500">com</span></span>
+                  </SheetTitle>
+                </SheetHeader>
+
+                <div className="px-5 py-4 space-y-4">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                      placeholder="Search products…"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch((e.target as HTMLInputElement).value)}
+                    />
+                  </div>
+
+                  {/* User greeting */}
+                  {isAuthenticated && (
+                    <div className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl p-3">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                        style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}>
+                        {user?.name?.[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-slate-800">{user?.name}</p>
+                        <p className="text-xs text-slate-400">{user?.email}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <hr className="border-slate-100" />
+
+                  {/* Nav Links */}
+                  <nav className="space-y-1">
+                    {NAV_LINKS.map((link) => {
+                      const active = isLinkActive(link.to, link.exact)
+                      return (
+                        <Link
+                          key={link.to}
+                          to={link.to}
+                          onClick={() => setMobileOpen(false)}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-colors ${active ? 'bg-orange-50 text-orange-500' : 'text-slate-600 hover:bg-slate-50'}`}
+                          style={{ textDecoration: 'none' }}
+                          aria-current={active ? 'page' : undefined}
+                        >
+                          <span className={active ? 'text-orange-400' : 'text-slate-400'}>{link.icon}</span>
+                          {link.label}
+                        </Link>
+                      )
+                    })}
+                  </nav>
+
+                  <hr className="border-slate-100" />
+
+                  {/* Auth Actions */}
+                  {isAuthenticated ? (
+                    <div className="space-y-2">
+                      {isAdmin && (
+                        <Link to="/admin" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                          <Button variant="outline" className="w-full justify-start gap-2 text-sm">
+                            <LayoutDashboard className="h-4 w-4" />Admin Dashboard
+                          </Button>
+                        </Link>
+                      )}
+                      <Link to="/orders" search={{ page: 1 }} onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                        <Button variant="outline" className="w-full justify-start gap-2 text-sm">
+                          <ListOrdered className="h-4 w-4" />My Orders
+                        </Button>
+                      </Link>
+                      <Link to="/account" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                        <Button variant="outline" className="w-full justify-start gap-2 text-sm">
+                          <Settings className="h-4 w-4" />Account Settings
+                        </Button>
+                      </Link>
+                      <Button variant="destructive" className="w-full gap-2 text-sm" onClick={handleLogout}>
+                        <LogOut className="h-4 w-4" />Sign Out
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      <Link to="/auth/login" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                        <Button className="w-full gap-2"><LogIn className="h-4 w-4" />Sign In</Button>
+                      </Link>
+                      <Link to="/auth/register" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                        <Button variant="outline" className="w-full gap-2"><User className="h-4 w-4" />Create Account</Button>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
 
-      {/* ── Category Nav Bar ── */}
+      {/* Category Nav Bar */}
       <nav className="navbar-category-bar desktop-only" role="navigation" aria-label="Category navigation">
         <div className="page-container">
           <div className="navbar-category-inner">
@@ -261,139 +353,11 @@ export default function Navbar() {
               )
             })}
             <span className="cat-nav-divider" />
-            <Link to="/products" className="cat-nav-link cat-nav-deal">
-              🔥 Hot Deals
-            </Link>
-            <Link to="/products" className="cat-nav-link">
-              New Arrivals
-            </Link>
+            <Link to="/products" className="cat-nav-link cat-nav-deal">🔥 Hot Deals</Link>
+            <Link to="/products" className="cat-nav-link">New Arrivals</Link>
           </div>
         </div>
       </nav>
-
-      {/* ── Mobile Drawer ── */}
-      <Drawer
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              width: 30, height: 30,
-              background: 'linear-gradient(135deg, #f97316, #ea580c)',
-              borderRadius: 8,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 15,
-            }}>🛍️</span>
-            <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.03em' }}>
-              Lara<span style={{ color: '#f97316' }}>com</span>
-            </span>
-          </div>
-        }
-        open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        placement="right"
-        width={300}
-        closeIcon={<CloseOutlined />}
-        styles={{ body: { padding: '16px 20px' } }}
-        aria-label="Mobile navigation menu"
-      >
-        <Space direction="vertical" style={{ width: '100%' }} size={16}>
-          {/* Search */}
-          <Input.Search
-            placeholder="Search products…"
-            onSearch={handleSearch}
-            allowClear
-            size="large"
-          />
-
-          {/* User greeting */}
-          {isAuthenticated && (
-            <div style={{
-              background: 'linear-gradient(135deg, #fff7ed, #ffedd5)',
-              border: '1px solid #fed7aa',
-              borderRadius: 12,
-              padding: '12px 14px',
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}>
-              <Avatar
-                size={40}
-                icon={<UserOutlined />}
-                style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
-              />
-              <div>
-                <Text strong style={{ display: 'block', fontSize: 14 }}>{user?.name}</Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>{user?.email}</Text>
-              </div>
-            </div>
-          )}
-
-          <Divider style={{ margin: '0' }} />
-
-          {/* Nav Links */}
-          {NAV_LINKS.map((link) => {
-            const active = isLinkActive(link.to, link.exact)
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                onClick={() => setMobileOpen(false)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 12px', borderRadius: 10,
-                  background: active ? '#fff7ed' : 'transparent',
-                  color: active ? '#f97316' : '#374151',
-                  fontWeight: active ? 600 : 500,
-                  fontSize: 15, textDecoration: 'none',
-                  transition: 'all 0.15s',
-                }}
-                aria-current={active ? 'page' : undefined}
-              >
-                <span style={{ color: active ? '#f97316' : '#94a3b8', fontSize: 16 }}>{link.icon}</span>
-                {link.label}
-              </Link>
-            )
-          })}
-
-          <Divider style={{ margin: '0' }} />
-
-          {/* Auth Actions */}
-          {isAuthenticated ? (
-            <Space direction="vertical" style={{ width: '100%' }} size={8}>
-              {isAdmin && (
-                <Link to="/admin" onClick={() => setMobileOpen(false)}>
-                  <Button block icon={<DashboardOutlined />} style={{ textAlign: 'left', justifyContent: 'flex-start' }}>
-                    Admin Dashboard
-                  </Button>
-                </Link>
-              )}
-              <Link to="/orders" onClick={() => setMobileOpen(false)}>
-                <Button block icon={<OrderedListOutlined />} style={{ textAlign: 'left', justifyContent: 'flex-start' }}>
-                  My Orders
-                </Button>
-              </Link>
-              <Link to="/account" onClick={() => setMobileOpen(false)}>
-                <Button block icon={<SettingOutlined />} style={{ textAlign: 'left', justifyContent: 'flex-start' }}>
-                  Account Settings
-                </Button>
-              </Link>
-              <Button danger block icon={<LogoutOutlined />} onClick={handleLogout}>
-                Sign Out
-              </Button>
-            </Space>
-          ) : (
-            <Space direction="vertical" style={{ width: '100%' }} size={10}>
-              <Link to="/auth/login" onClick={() => setMobileOpen(false)}>
-                <Button block type="primary" size="large" icon={<LoginOutlined />}>
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/auth/register" onClick={() => setMobileOpen(false)}>
-                <Button block size="large" icon={<UserOutlined />}>
-                  Create Account
-                </Button>
-              </Link>
-            </Space>
-          )}
-        </Space>
-      </Drawer>
     </header>
   )
 }

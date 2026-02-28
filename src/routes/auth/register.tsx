@@ -1,16 +1,29 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { Form, Input, Button, Typography, Alert, Checkbox, Steps } from 'antd'
-import {
-  UserOutlined, MailOutlined, LockOutlined, PhoneOutlined,
-  ArrowRightOutlined, CheckCircleFilled,
-} from '@ant-design/icons'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { authApi } from '@/api/auth'
 import { useState } from 'react'
-import { getErrorMessage, getFieldErrors } from '@/lib/error'
+import { getErrorMessage } from '@/lib/error'
 import type { RegisterPayload } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 
-const { Title, Text, Paragraph } = Typography
+const schema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Enter a valid email address'),
+  phone: z.string().optional(),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password_confirmation: z.string(),
+}).refine((d) => d.password === d.password_confirmation, {
+  message: 'Passwords do not match',
+  path: ['password_confirmation'],
+})
+type FormValues = z.infer<typeof schema>
 
 export const Route = createFileRoute('/auth/register')({
   component: RegisterPage,
@@ -25,239 +38,134 @@ const PERKS = [
 
 function RegisterPage() {
   const navigate = useNavigate()
-  const [form] = Form.useForm()
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+  })
 
   const registerMutation = useMutation({
     mutationFn: (values: RegisterPayload) => authApi.register(values),
     onSuccess: (_, variables) => {
       navigate({ to: '/auth/verify-otp', search: { email: variables.email } })
     },
-    onError: (err: { response?: { data?: { errors?: Record<string, string[]>; message?: string } } }) => {
-      const fieldErrors = getFieldErrors(err)
-      if (Object.keys(fieldErrors).length > 0) {
-        form.setFields(
-          Object.entries(fieldErrors).map(([name, message]) => ({ name, errors: [message] }))
-        )
-      }
+    onError: (err: unknown) => {
       setError(getErrorMessage(err, 'Registration failed. Please try again.'))
     },
   })
 
   return (
-    <div className="auth-page">
-      {/* ── Left Branding Sidebar ── */}
-      <div
-        className="auth-sidebar"
-        aria-hidden="true"
-        style={{ background: 'linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%)', position: 'relative', overflow: 'hidden' }}
-      >
-        {/* Bubbles */}
-        <div style={{ position: 'absolute', top: '8%', right: '-10%', width: 240, height: 240, background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: '5%', left: '-8%', width: 300, height: 300, background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
-
-        <div className="auth-sidebar-content" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'center' }}>
-            <div style={{
-              width: 64, height: 64,
-              background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.3)',
-              borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-            }}>🛍️</div>
+    <div className="min-h-screen flex">
+      {/* Left Sidebar */}
+      <div className="hidden lg:flex lg:w-[40%] bg-linear-to-br from-violet-700 via-purple-700 to-indigo-700 flex-col justify-center px-12 py-16 relative overflow-hidden">
+        <div className="absolute top-[10%] right-[5%] w-48 h-48 bg-white/5 rounded-full" />
+        <div className="absolute bottom-[15%] left-[-5%] w-64 h-64 bg-white/4 rounded-full" />
+        <div className="relative z-10">
+          <Link to="/" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium mb-10 no-underline transition-colors group">
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            Back to store
+          </Link>
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-white/15 border border-white/30 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm shadow-xl">🛍️</div>
           </div>
-
-          <Title level={2} style={{ color: 'white', margin: '0 0 12px', fontWeight: 800, letterSpacing: '-0.03em' }}>
-            Join Laracom
-          </Title>
-          <Paragraph style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, lineHeight: 1.7, margin: '0 0 32px' }}>
-            Create a free account and unlock exclusive benefits for members.
-          </Paragraph>
-
-          {/* Perks List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 40 }}>
+          <h2 className="text-3xl font-extrabold text-white mb-3 tracking-tight">Join Laracom</h2>
+          <p className="text-white/75 text-[15px] leading-relaxed mb-10">
+            Create your free account and start enjoying exclusive member benefits today.
+          </p>
+          <div className="space-y-3">
             {PERKS.map((perk) => (
-              <div key={perk} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <CheckCircleFilled style={{ color: '#86efac', fontSize: 16, flexShrink: 0 }} />
-                <Text style={{ color: 'rgba(255,255,255,0.83)', fontSize: 14 }}>{perk}</Text>
+              <div key={perk} className="flex items-center gap-3">
+                <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
+                <span className="text-white/85 text-sm">{perk}</span>
               </div>
             ))}
-          </div>
-
-          {/* Steps Process */}
-          <div style={{
-            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 14, padding: '18px 20px', backdropFilter: 'blur(8px)',
-          }}>
-            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 14 }}>
-              Quick Setup
-            </Text>
-            <Steps
-              size="small"
-              direction="vertical"
-              current={0}
-              style={{ '--steps-active-color': '#a5b4fc' } as React.CSSProperties}
-              items={[
-                { title: <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13 }}>Create account</span> },
-                { title: <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>Verify email</span> },
-                { title: <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>Start shopping</span> },
-              ]}
-            />
           </div>
         </div>
       </div>
 
-      {/* ── Right: Form Panel ── */}
-      <div className="auth-panel">
-        <div className="auth-card">
-          <div style={{ marginBottom: 28 }}>
-            <Title level={3} style={{ margin: '0 0 6px', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a' }}>
-              Create your account
-            </Title>
-            <Text style={{ color: '#64748b', fontSize: 15 }}>
-              Already have an account?{' '}
-              <Link to="/auth/login" style={{ color: '#6366f1', fontWeight: 600 }}>
-                Sign in
-              </Link>
-            </Text>
+      {/* Right Form */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12 bg-slate-50">
+        <div className="w-full max-w-md">
+          <div className="flex items-center justify-between mb-8">
+            <Link to="/" className="flex items-center gap-2 no-underline">
+              <span className="w-9 h-9 bg-linear-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-lg">🛍️</span>
+              <span className="text-xl font-black tracking-tight">Lara<span className="text-indigo-600">com</span></span>
+            </Link>
+            <Link to="/" className="lg:hidden inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-indigo-600 no-underline transition-colors">
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Link>
           </div>
 
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setError('')}
-              style={{ marginBottom: 24, borderRadius: 10 }}
-            />
-          )}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+            <div className="mb-7">
+              <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Create your account</h1>
+              <p className="text-slate-500 text-sm">
+                Already have one?{' '}
+                <Link to="/auth/login" className="text-indigo-600 font-semibold no-underline hover:underline">Sign in</Link>
+              </p>
+            </div>
 
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={(values) => { setError(''); registerMutation.mutate(values) }}
-            autoComplete="on"
-            requiredMark={false}
-          >
-            <Form.Item
-              name="name"
-              label={<span style={{ fontWeight: 600, fontSize: 13.5 }}>Full name</span>}
-              rules={[
-                { required: true, message: 'Please enter your full name' },
-                { min: 2, message: 'Name must be at least 2 characters' },
-              ]}
-            >
-              <Input
-                prefix={<UserOutlined style={{ color: '#94a3b8' }} />}
-                placeholder="Jane Smith"
-                size="large"
-                autoComplete="name"
-              />
-            </Form.Item>
+            {error && (
+              <Alert variant="destructive" className="mb-5">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-            <Form.Item
-              name="email"
-              label={<span style={{ fontWeight: 600, fontSize: 13.5 }}>Email address</span>}
-              rules={[
-                { required: true, message: 'Please enter your email' },
-                { type: 'email', message: 'Enter a valid email address' },
-              ]}
-            >
-              <Input
-                prefix={<MailOutlined style={{ color: '#94a3b8' }} />}
-                placeholder="you@example.com"
-                size="large"
-                autoComplete="email"
-              />
-            </Form.Item>
+            <form onSubmit={handleSubmit((values) => { setError(''); registerMutation.mutate(values as RegisterPayload) })} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="font-semibold text-[13.5px]">Full Name</Label>
+                <Input id="name" placeholder="John Doe" {...register('name')} className={errors.name ? 'border-red-400' : ''} />
+                {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+              </div>
 
-            <Form.Item
-              name="phone"
-              label={<span style={{ fontWeight: 600, fontSize: 13.5 }}>Phone number</span>}
-              rules={[{ required: true, message: 'Please enter your phone number' }]}
-            >
-              <Input
-                prefix={<PhoneOutlined style={{ color: '#94a3b8' }} />}
-                placeholder="+1 (555) 000-0000"
-                size="large"
-                autoComplete="tel"
-              />
-            </Form.Item>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="font-semibold text-[13.5px]">Email Address</Label>
+                <Input id="email" type="email" placeholder="you@example.com" autoComplete="email" {...register('email')} className={errors.email ? 'border-red-400' : ''} />
+                {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+              </div>
 
-            <Form.Item
-              name="password"
-              label={<span style={{ fontWeight: 600, fontSize: 13.5 }}>Password</span>}
-              rules={[
-                { required: true, message: 'Please create a password' },
-                { min: 8, message: 'Password must be at least 8 characters' },
-              ]}
-            >
-              <Input.Password
-                prefix={<LockOutlined style={{ color: '#94a3b8' }} />}
-                placeholder="Minimum 8 characters"
-                size="large"
-                autoComplete="new-password"
-              />
-            </Form.Item>
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className="font-semibold text-[13.5px]">Phone <span className="text-slate-400 font-normal">(optional)</span></Label>
+                <Input id="phone" placeholder="+1 234 567 8900" {...register('phone')} />
+              </div>
 
-            <Form.Item
-              name="password_confirmation"
-              label={<span style={{ fontWeight: 600, fontSize: 13.5 }}>Confirm password</span>}
-              dependencies={['password']}
-              rules={[
-                { required: true, message: 'Please confirm your password' },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    if (!value || getFieldValue('password') === value) return Promise.resolve()
-                    return Promise.reject(new Error('Passwords do not match'))
-                  },
-                }),
-              ]}
-            >
-              <Input.Password
-                prefix={<LockOutlined style={{ color: '#94a3b8' }} />}
-                placeholder="Repeat your password"
-                size="large"
-                autoComplete="new-password"
-              />
-            </Form.Item>
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="font-semibold text-[13.5px]">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Min. 8 characters"
+                    {...register('password')}
+                    className={`pr-10 ${errors.password ? 'border-red-400' : ''}`}
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 border-0 bg-transparent p-0 cursor-pointer">
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+              </div>
 
-            <Form.Item
-              name="terms"
-              valuePropName="checked"
-              rules={[{
-                validator: (_, value) =>
-                  value ? Promise.resolve() : Promise.reject(new Error('You must accept the terms')),
-              }]}
-              style={{ marginBottom: 20 }}
-            >
-              <Checkbox style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.5 }}>
-                I agree to the{' '}
-                <Link to="/" style={{ color: '#6366f1', fontWeight: 500 }}>Terms of Service</Link>
-                {' '}and{' '}
-                <Link to="/" style={{ color: '#6366f1', fontWeight: 500 }}>Privacy Policy</Link>
-              </Checkbox>
-            </Form.Item>
+              <div className="space-y-1.5">
+                <Label htmlFor="password_confirmation" className="font-semibold text-[13.5px]">Confirm Password</Label>
+                <Input
+                  id="password_confirmation"
+                  type="password"
+                  placeholder="Repeat your password"
+                  {...register('password_confirmation')}
+                  className={errors.password_confirmation ? 'border-red-400' : ''}
+                />
+                {errors.password_confirmation && <p className="text-xs text-red-500">{errors.password_confirmation.message}</p>}
+              </div>
 
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                block
-                size="large"
-                loading={registerMutation.isPending}
-                icon={!registerMutation.isPending ? <ArrowRightOutlined /> : undefined}
-                iconPosition="end"
-                style={{ fontWeight: 700, fontSize: 15 }}
-              >
+              <Button type="submit" className="w-full mt-2" disabled={registerMutation.isPending}>
                 {registerMutation.isPending ? 'Creating account…' : 'Create Account'}
               </Button>
-            </Form.Item>
-          </Form>
-
-          <Text style={{ fontSize: 12, color: '#94a3b8', display: 'block', textAlign: 'center', lineHeight: 1.6 }}>
-            You'll receive a verification email to confirm your account.
-          </Text>
+            </form>
+          </div>
         </div>
       </div>
     </div>

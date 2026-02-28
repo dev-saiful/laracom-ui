@@ -1,38 +1,57 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import {
-  Form, Input, Button, InputNumber, Switch, Select, Card,
-  Typography, Space, Upload, Row, Col, Alert
-} from 'antd'
-import { PlusOutlined, ArrowLeftOutlined, MinusCircleOutlined } from '@ant-design/icons'
+import { Plus, ArrowLeft, Trash2, Loader2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@/api/admin'
 import { categoriesApi } from '@/api/products'
-import { App } from 'antd'
 import { getErrorMessage } from '@/lib/error'
 import { useEffect } from 'react'
-
-const { Title } = Typography
-const { TextArea } = Input
+import { useForm, useFieldArray } from 'react-hook-form'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import { ImageUploader } from '@/components/shared/ImageUploader'
 
 export const Route = createFileRoute('/admin/_layout/products/$id')({
   component: ProductFormPage,
 })
 
+interface VariantField { id?: string; name: string; price: number; stock: number; sku: string }
+interface ProductFormValues {
+  name: string
+  category_id: string
+  stock: number
+  price: number
+  compare_price?: number
+  short_description: string
+  description?: string
+  is_active: boolean
+  is_featured: boolean
+  images: string[]
+  variants: VariantField[]
+}
+
 function ProductFormPage() {
   const { id } = Route.useParams()
   const isEdit = id !== 'new'
   const navigate = useNavigate()
-  const { message } = App.useApp()
   const queryClient = useQueryClient()
-  const [form] = Form.useForm()
 
-  // Fetch Categories
+  const { register, handleSubmit, reset, setValue, watch, control, formState: { errors } } = useForm<ProductFormValues>({
+    defaultValues: { is_active: true, is_featured: false, stock: 0, price: 0, images: [], variants: [] },
+  })
+
+  const { fields, append, remove } = useFieldArray({ control, name: 'variants' })
+
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: () => categoriesApi.list().then((r) => r.data.data),
   })
 
-  // Fetch Product (if edit)
   const { data: productResp, isLoading } = useQuery({
     queryKey: ['admin', 'product', id],
     queryFn: () => adminApi.products.show(id).then((r) => r.data),
@@ -42,204 +61,201 @@ function ProductFormPage() {
 
   useEffect(() => {
     if (product) {
-      form.setFieldsValue({
-        ...product,
-        category_id: product.category?.id,
+      reset({
+        name: product.name,
+        category_id: product.category?.id ?? '',
+        stock: product.stock,
+        price: product.price,
+        compare_price: product.compare_price,
+        short_description: product.short_description,
+        description: product.description,
+        is_active: product.is_active,
+        is_featured: product.is_featured,
+        images: product.images ?? [],
         variants: product.variants ?? [],
       })
     }
-  }, [product, form])
+  }, [product, reset])
 
   const saveMutation = useMutation({
-    mutationFn: (values: Record<string, unknown>) => {
-      // Clean up values
-      const payload = { ...values }
-      // Filter out empty variant rows
+    mutationFn: (values: ProductFormValues) => {
+      const payload: Record<string, unknown> = { ...values }
       if (Array.isArray(payload.variants)) {
-        payload.variants = payload.variants.filter((v: Record<string, unknown>) => v && v.name)
+        payload.variants = (payload.variants as VariantField[]).filter((v) => v && v.name)
       }
-      
-      // Since we don't have a real image upload backend logic prepared in this UI demo,
-      // we'll preserve existing images or use placeholders if new.
-      // In a real app, we'd upload files first and send URLs/IDs.
-      if (!payload.images || payload.images.length === 0) {
+      // Use uploaded images (or a single auto-generated placeholder when none provided)
+      if (!Array.isArray(payload.images) || (payload.images as string[]).length === 0) {
         payload.images = [
-            `https://placehold.co/600x600/f1f5f9/94a3b8?text=${encodeURIComponent(payload.name)}`,
-            `https://placehold.co/600x600/e2e8f0/94a3b8?text=${encodeURIComponent(payload.name)}+2`,
+          `https://placehold.co/600x600/f1f5f9/94a3b8?text=${encodeURIComponent(values.name)}`,
         ]
       }
-      
-      return isEdit 
-        ? adminApi.products.update(id, payload) 
-        : adminApi.products.store(payload)
+      return isEdit ? adminApi.products.update(id, payload) : adminApi.products.store(payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
-      message.success('Product saved successfully')
+      toast.success('Product saved successfully')
       navigate({ to: '/admin/products' })
     },
-    onError: (err: unknown) => {
-      message.error(getErrorMessage(err, 'Failed to save product'))
-    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Failed to save product')),
   })
 
-  if (isEdit && isLoading) return <div className="page-container section-gap">Loading...</div>
+  if (isEdit && isLoading) {
+    return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-indigo-500" /></div>
+  }
+
+  const isActive = watch('is_active')
+  const isFeatured = watch('is_featured')
+  const categoryId = watch('category_id')
+  const images = watch('images') ?? []
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto' }}>
-      <Space style={{ marginBottom: 24 }}>
+    <div className="max-w-3xl mx-auto">
+      <div className="flex items-center gap-3 mb-6">
         <Link to="/admin/products">
-            <Button icon={<ArrowLeftOutlined />}>Back</Button>
+          <Button variant="outline" size="sm" className="gap-1.5"><ArrowLeft className="h-4 w-4" />Back</Button>
         </Link>
-        <Title level={2} style={{ margin: 0 }}>
-            {isEdit ? 'Edit Product' : 'New Product'}
-        </Title>
-      </Space>
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          {isEdit ? 'Edit Product' : 'New Product'}
+        </h1>
+      </div>
 
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={(values) => saveMutation.mutate(values)}
-        initialValues={{ is_active: true, is_featured: false, stock: 0, price: 0 }}
-      >
-        <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24 }}>
-            <Title level={4}>Basic Information</Title>
-            
-            <Form.Item name="name" label="Product Name" rules={[{ required: true }]}>
-                <Input size="large" />
-            </Form.Item>
+      <form onSubmit={handleSubmit((v) => saveMutation.mutate(v))} className="space-y-5">
+        {/* Basic Info */}
+        <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+          <h2 className="text-base font-bold text-slate-800">Basic Information</h2>
 
-            <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item name="category_id" label="Category" rules={[{ required: true }]}>
-                        <Select placeholder="Select Category">
-                            {categories?.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name="stock" label="Stock Quantity" rules={[{ required: true }]}>
-                        <InputNumber min={0} style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-            </Row>
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Product Name <span className="text-red-500">*</span></Label>
+            <Input id="name" {...register('name', { required: 'Name is required' })} className={errors.name ? 'border-red-400' : ''} />
+            {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+          </div>
 
-            <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item name="price" label="Price" rules={[{ required: true }]}>
-                        <InputNumber min={0} precision={2} prefix="$" style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name="compare_price" label="Compare Price">
-                         <InputNumber min={0} precision={2} prefix="$" style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-            </Row>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Category <span className="text-red-500">*</span></Label>
+              <Select value={categoryId} onValueChange={(v) => setValue('category_id', v)}>
+                <SelectTrigger className={errors.category_id ? 'border-red-400' : ''}>
+                  <SelectValue placeholder="Select Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(categories ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="stock">Stock Quantity <span className="text-red-500">*</span></Label>
+              <Input id="stock" type="number" min={0} {...register('stock', { required: true, valueAsNumber: true })} />
+            </div>
+          </div>
 
-             <Form.Item name="short_description" label="Short Description" rules={[{ required: true }]}>
-                <TextArea rows={2} showCount maxLength={255} />
-            </Form.Item>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="price">Price ($) <span className="text-red-500">*</span></Label>
+              <Input id="price" type="number" min={0} step={0.01} {...register('price', { required: true, valueAsNumber: true })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="compare_price">Compare Price ($)</Label>
+              <Input id="compare_price" type="number" min={0} step={0.01} {...register('compare_price', { valueAsNumber: true })} />
+            </div>
+          </div>
 
-            <Form.Item name="description" label="Detailed Description">
-                <TextArea rows={6} />
-            </Form.Item>
-        </Card>
+          <div className="space-y-1.5">
+            <Label htmlFor="short_description">Short Description <span className="text-red-500">*</span></Label>
+            <textarea
+              id="short_description"
+              rows={2}
+              maxLength={255}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              {...register('short_description', { required: 'Short description is required' })}
+            />
+            {errors.short_description && <p className="text-xs text-red-500">{errors.short_description.message}</p>}
+          </div>
 
-        <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24 }}>
-             <Title level={4}>Status & Visibility</Title>
-             <Space size={24}>
-                <Form.Item name="is_active" label="Active" valuePropName="checked">
-                    <Switch />
-                </Form.Item>
-                <Form.Item name="is_featured" label="Featured" valuePropName="checked">
-                    <Switch />
-                </Form.Item>
-             </Space>
-        </Card>
+          <div className="space-y-1.5">
+            <Label htmlFor="description">Detailed Description</Label>
+            <textarea
+              id="description"
+              rows={5}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              {...register('description')}
+            />
+          </div>
+        </div>
+
+        {/* Status */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="text-base font-bold text-slate-800 mb-4">Status & Visibility</h2>
+          <div className="flex gap-8">
+            <div className="flex items-center gap-3">
+              <Switch id="is_active" checked={isActive} onCheckedChange={(v) => setValue('is_active', v)} />
+              <Label htmlFor="is_active">Active</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch id="is_featured" checked={isFeatured} onCheckedChange={(v) => setValue('is_featured', v)} />
+              <Label htmlFor="is_featured">Featured</Label>
+            </div>
+          </div>
+        </div>
 
         {/* Variants */}
-        <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24 }}>
-          <Title level={4}>Variants</Title>
-          <Form.List name="variants">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.length > 0 && (
-                  <Row gutter={8} style={{ fontWeight: 600, marginBottom: 4, padding: '0 4px' }}>
-                    <Col span={7}><span style={{ fontSize: 12, color: '#64748b' }}>Name</span></Col>
-                    <Col span={5}><span style={{ fontSize: 12, color: '#64748b' }}>Price ($)</span></Col>
-                    <Col span={5}><span style={{ fontSize: 12, color: '#64748b' }}>Stock</span></Col>
-                    <Col span={5}><span style={{ fontSize: 12, color: '#64748b' }}>SKU</span></Col>
-                    <Col span={2} />
-                  </Row>
-                )}
-                {fields.map(({ key, name, ...restField }) => (
-                  <Row key={key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
-                    <Col span={7}>
-                      <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Name required' }]} style={{ margin: 0 }}>
-                        <Input placeholder="e.g. Red / XL" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={5}>
-                      <Form.Item {...restField} name={[name, 'price']} rules={[{ required: true, message: 'Price required' }]} style={{ margin: 0 }}>
-                        <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0.00" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={5}>
-                      <Form.Item {...restField} name={[name, 'stock']} style={{ margin: 0 }}>
-                        <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={5}>
-                      <Form.Item {...restField} name={[name, 'sku']} style={{ margin: 0 }}>
-                        <Input placeholder="SKU-001" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={2} style={{ textAlign: 'center' }}>
-                      <Button
-                        type="text"
-                        danger
-                        icon={<MinusCircleOutlined />}
-                        onClick={() => remove(name)}
-                        size="small"
-                      />
-                    </Col>
-                  </Row>
-                ))}
-                <Button
-                  type="dashed"
-                  onClick={() => add({ stock: 0, price: 0 })}
-                  icon={<PlusOutlined />}
-                  style={{ marginTop: 8 }}
-                >
-                  Add Variant
-                </Button>
-              </>
-            )}
-          </Form.List>
-        </Card>
-
-        {/* Image Upload Placeholder - in real app would use Upload component with action URL */}
-        <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24 }}>
-            <Title level={4}>Images</Title>
-            <Alert message="Image upload is simulated in this demo. Default placeholders will be used." type="info" showIcon style={{ marginBottom: 16 }} />
-            <Upload listType="picture-card" disabled>
-                 <div>
-                    <PlusOutlined />
-                    <div style={{ marginTop: 8 }}>Upload</div>
-                </div>
-            </Upload>
-        </Card>
-
-        <div style={{ textAlign: 'right', marginBottom: 40 }}>
-             <Button size="large" onClick={() => navigate({ to: '/admin/products' })} style={{ marginRight: 16 }}>
-                Cancel
-             </Button>
-             <Button type="primary" htmlType="submit" size="large" loading={saveMutation.isPending}>
-                Save Product
-             </Button>
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="text-base font-bold text-slate-800 mb-4">Variants</h2>
+          {fields.length > 0 && (
+            <div className="grid grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 mb-1 px-1">
+              {['Name', 'Price ($)', 'Stock', 'SKU', ''].map((h) => (
+                <span key={h} className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</span>
+              ))}
+            </div>
+          )}
+          <div className="space-y-2">
+            {fields.map((field, index) => (
+              <div key={field.id} className="grid grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 items-center">
+                <Input placeholder="e.g. Red / XL" {...register(`variants.${index}.name`, { required: true })} className={errors.variants?.[index]?.name ? 'border-red-400' : ''} />
+                <Input type="number" min={0} step={0.01} placeholder="0.00" {...register(`variants.${index}.price`, { valueAsNumber: true })} />
+                <Input type="number" min={0} placeholder="0" {...register(`variants.${index}.stock`, { valueAsNumber: true })} />
+                <Input placeholder="SKU-001" {...register(`variants.${index}.sku`)} />
+                <button type="button" className="p-1.5 rounded hover:bg-red-50 text-red-400" onClick={() => remove(index)}>
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => append({ name: '', price: 0, stock: 0, sku: '' })}
+            className="mt-3 flex items-center gap-1.5 text-sm text-indigo-600 border border-dashed border-indigo-300 rounded-lg px-3 py-2 hover:bg-indigo-50 transition-colors">
+            <Plus className="h-4 w-4" />Add Variant
+          </button>
         </div>
-      </Form>
+
+        {/* Images */}
+        <div className="bg-white rounded-xl shadow-sm p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-800">Product Images</h2>
+              <p className="text-xs text-slate-400 mt-0.5">First image is used as the main thumbnail</p>
+            </div>
+            {images.length > 0 && (
+              <span className="text-xs text-slate-400 font-medium">{images.length} / 6 uploaded</span>
+            )}
+          </div>
+          <ImageUploader
+            value={images}
+            onChange={(urls) => setValue('images', urls, { shouldDirty: true })}
+            folder="products"
+            maxImages={6}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 pb-10">
+          <Button type="button" variant="outline" onClick={() => navigate({ to: '/admin/products' })}>Cancel</Button>
+          <Button type="submit" disabled={saveMutation.isPending} className="gap-1.5">
+            {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Save Product
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }

@@ -1,36 +1,35 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Typography, Input, Steps, Card, Alert, Button, Space } from 'antd'
-import { SearchOutlined, CheckCircleOutlined, CopyOutlined } from '@ant-design/icons'
+import { Search, CheckCircle2, Copy, X } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { ordersApi } from '@/api/orders'
 import { getErrorMessage } from '@/lib/error'
 import { useState, useEffect } from 'react'
-import { App } from 'antd'
-
-const { Title, Text } = Typography
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/track')({
   component: TrackOrderPage,
-  validateSearch: (search: Record<string, unknown>) => {
-    return {
-      orderNumber: search.orderNumber as string | undefined,
-      success: search.success as string | undefined,
-    }
-  },
+  validateSearch: (search: Record<string, unknown>) => ({
+    orderNumber: search.orderNumber as string | undefined,
+    success: search.success as string | undefined,
+  }),
 })
+
+const STEP_MAP: Record<string, number> = {
+  pending: 0, confirmed: 1, processing: 2, shipped: 3, delivered: 4,
+}
+const STEPS = ['Placed', 'Confirmed', 'Processing', 'Shipped', 'Delivered']
 
 function TrackOrderPage() {
   const { orderNumber: urlOrderNumber, success } = Route.useSearch()
-  const { message } = App.useApp()
   const [orderNumber, setOrderNumber] = useState(urlOrderNumber || '')
   const [search, setSearch] = useState(urlOrderNumber || '')
   const [showSuccess, setShowSuccess] = useState(success === 'true')
 
-  // Auto-trigger search if orderNumber is provided in URL
   useEffect(() => {
-    if (urlOrderNumber && !search) {
-      setSearch(urlOrderNumber)
-    }
+    if (urlOrderNumber && !search) setSearch(urlOrderNumber)
   }, [urlOrderNumber, search])
 
   const { data: trackResp, isLoading, isError, error } = useQuery({
@@ -44,153 +43,119 @@ function TrackOrderPage() {
   const copyOrderNumber = () => {
     if (order?.order_number) {
       navigator.clipboard.writeText(order.order_number)
-      message.success('Order number copied to clipboard!')
+        .then(() => toast.success('Order number copied!'))
+        .catch(() => toast.error('Could not copy'))
     }
   }
 
   const apiErrorMessage = isError ? getErrorMessage(error, 'Please check the order number and try again.') : ''
-
-  const stepStatus = order ? {
-    pending: 0,
-    confirmed: 1,
-    processing: 2,
-    shipped: 3,
-    delivered: 4,
-    cancelled: -1,
-    refunded: -1,
-  }[order.status] : 0
+  const stepStatus = order ? (STEP_MAP[order.status] ?? -1) : 0
 
   return (
     <div className="page-container section-gap" style={{ maxWidth: 800, margin: '0 auto' }}>
-      {/* Order Success Alert for Guest Checkout */}
+      {/* Success Banner */}
       {showSuccess && order && (
-        <Alert
-          message={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <CheckCircleOutlined style={{ fontSize: 20, color: '#52c41a' }} />
-              <Text strong style={{ fontSize: 16 }}>Order Placed Successfully!</Text>
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-8 relative">
+          <button onClick={() => setShowSuccess(false)} className="absolute top-4 right-4 text-green-400 hover:text-green-600">
+            <X className="w-4 h-4" />
+          </button>
+          <div className="flex items-center gap-3 mb-4">
+            <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <span className="text-lg font-bold text-green-800">Order Placed Successfully!</span>
+          </div>
+          <p className="text-green-700 text-sm mb-4">Your order has been confirmed. Here is your order tracking number:</p>
+          <div className="bg-white border-2 border-dashed border-indigo-400 rounded-xl p-4 flex justify-between items-center mb-4">
+            <div>
+              <span className="text-xs text-slate-400 block mb-1">Order Number</span>
+              <span className="text-xl font-extrabold text-indigo-600 tracking-wide">{order.order_number}</span>
             </div>
-          }
-          description={
-            <div style={{ marginTop: 12 }}>
-              <div style={{ marginBottom: 16 }}>
-                <Text>Your order has been confirmed. Here is your order tracking number:</Text>
-              </div>
-              <div
-                style={{
-                  background: '#f6f8fa',
-                  padding: '16px 20px',
-                  borderRadius: 8,
-                  border: '2px dashed #6366f1',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 16,
-                }}
-              >
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Order Number</Text>
-                  <Text strong style={{ fontSize: 20, color: '#6366f1', letterSpacing: '0.5px' }}>
-                    {order.order_number}
-                  </Text>
-                </div>
-                <Button
-                  type="primary"
-                  icon={<CopyOutlined />}
-                  onClick={copyOrderNumber}
-                  style={{ flexShrink: 0 }}
-                >
-                  Copy
-                </Button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <Text strong style={{ color: '#f97316' }}>⚠️ Important: Save this order number!</Text>
-                <Text type="secondary">• Use this number to track your order anytime on this page</Text>
-                <Text type="secondary">• You'll need it for any inquiries about your order</Text>
-                <Text type="secondary">• A confirmation email has been sent to your email address</Text>
-                <Text type="secondary">• Bookmark this page or save the order number somewhere safe</Text>
-              </div>
-            </div>
-          }
-          type="success"
-          closable
-          onClose={() => setShowSuccess(false)}
-          style={{ marginBottom: 32, borderRadius: 12 }}
-          showIcon={false}
-        />
+            <Button size="sm" onClick={copyOrderNumber}>
+              <Copy className="w-3.5 h-3.5 mr-1" />Copy
+            </Button>
+          </div>
+          <div className="space-y-1.5 text-sm">
+            <p className="font-semibold text-orange-600">⚠️ Important: Save this order number!</p>
+            <p className="text-slate-500">• Use this number to track your order anytime on this page</p>
+            <p className="text-slate-500">• A confirmation email has been sent to your email address</p>
+          </div>
+        </div>
       )}
 
-      <div style={{ textAlign: 'center', marginBottom: 48 }}>
-        <Title level={2}>Track Your Order</Title>
-        <Text type="secondary">Enter your order number to see the current status</Text>
-        
-        <div style={{ maxWidth: 400, margin: '32px auto 0' }}>
-          <Space.Compact style={{ width: '100%' }} size="large">
-            <Input 
-              placeholder="Order Number (e.g. ORD-123456)" 
-              value={orderNumber} 
-              onChange={(e) => setOrderNumber(e.target.value)} 
-            />
-            <Button type="primary" onClick={() => setSearch(orderNumber)} loading={isLoading} icon={<SearchOutlined />}>
-              Track
-            </Button>
-          </Space.Compact>
+      <div className="text-center mb-12">
+        <h2 className="text-2xl font-bold mb-2">Track Your Order</h2>
+        <p className="text-slate-400">Enter your order number to see the current status</p>
+        <div className="flex gap-2 max-w-sm mx-auto mt-8">
+          <Input
+            placeholder="Order Number (e.g. ORD-123456)"
+            value={orderNumber}
+            onChange={(e) => setOrderNumber(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && setSearch(orderNumber)}
+            className="flex-1"
+          />
+          <Button onClick={() => setSearch(orderNumber)} disabled={isLoading}>
+            <Search className="w-4 h-4 mr-1" />{isLoading ? '...' : 'Track'}
+          </Button>
         </div>
       </div>
 
       {isError && (
-        <Alert
-          message="Order not found"
-          description={apiErrorMessage}
-          type="error"
-          showIcon
-          style={{ marginBottom: 24 }}
-        />
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 text-red-700 text-sm">
+          <span className="font-semibold">Order not found:</span> {apiErrorMessage}
+        </div>
       )}
 
       {order && (
-        <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 32, alignItems: 'start' }}>
-            <div style={{ flex: 1 }}>
-              <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>Order Number</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text strong style={{ fontSize: 18 }}>#{order.order_number}</Text>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<CopyOutlined />}
-                  onClick={copyOrderNumber}
-                  style={{ flexShrink: 0 }}
-                />
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="flex justify-between items-start mb-8 flex-wrap gap-4">
+            <div>
+              <p className="text-xs text-slate-400 mb-1">Order Number</p>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold">#{order.order_number}</span>
+                <button onClick={copyOrderNumber} className="text-slate-400 hover:text-indigo-500 transition-colors">
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
             </div>
             {order.tracking_number && (
-              <div style={{ textAlign: 'right' }}>
-                <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>Tracking Number</Text>
-                <Text strong style={{ fontSize: 18 }}>{order.tracking_number}</Text>
+              <div className="text-right">
+                <p className="text-xs text-slate-400 mb-1">Tracking Number</p>
+                <span className="text-lg font-bold">{order.tracking_number}</span>
               </div>
             )}
           </div>
 
-          <Steps
-            current={stepStatus}
-            items={[
-              { title: 'Placed' },
-              { title: 'Confirmed' },
-              { title: 'Processing' },
-              { title: 'Shipped' },
-              { title: 'Delivered' },
-            ]}
-          />
-          
+          {/* Progress Steps */}
+          <div className="flex items-center mb-6">
+            {STEPS.map((label, idx) => (
+              <div key={label} className="flex items-center flex-1 last:flex-none">
+                <div className="flex flex-col items-center">
+                  <div className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold',
+                    idx < stepStatus ? 'bg-indigo-600 text-white'
+                      : idx === stepStatus ? 'bg-indigo-600 text-white ring-4 ring-indigo-100'
+                      : 'bg-slate-100 text-slate-400'
+                  )}>
+                    {idx < stepStatus ? '✓' : idx + 1}
+                  </div>
+                  <span className="text-[10px] mt-1 text-slate-500 hidden sm:block">{label}</span>
+                </div>
+                {idx < STEPS.length - 1 && (
+                  <div className={cn('flex-1 h-0.5 mx-1', idx < stepStatus ? 'bg-indigo-600' : 'bg-slate-100')} />
+                )}
+              </div>
+            ))}
+          </div>
+
           {order.status === 'cancelled' && (
-            <Alert message="Order has been cancelled" type="error" showIcon style={{ marginTop: 24 }} />
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm mt-4">
+              Order has been cancelled
+            </div>
           )}
 
-          <div style={{ marginTop: 24, textAlign: 'center' }}>
-            <Text type="secondary">Last updated: {new Date(order.updated_at).toLocaleString()}</Text>
+          <div className="mt-6 text-center text-xs text-slate-400">
+            Last updated: {new Date(order.updated_at).toLocaleString()}
           </div>
-        </Card>
+        </div>
       )}
     </div>
   )

@@ -1,19 +1,14 @@
-import { Row, Col, Typography, Space, Divider, Button, Input, Tooltip } from 'antd'
 import { Link } from '@tanstack/react-router'
-import {
-  GithubOutlined, TwitterOutlined, InstagramOutlined,
-  LinkedinOutlined, MailOutlined, PhoneOutlined, EnvironmentOutlined,
-  ArrowRightOutlined, HeartFilled,
-} from '@ant-design/icons'
-
-const { Text, Title } = Typography
+import { Github, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Heart } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const FOOTER_LINKS = {
   shop: [
     { label: 'All Products',   to: '/products' },
-    { label: 'New Arrivals',   to: '/products', search: { sort: 'newest' } },
-    { label: 'Best Sellers',   to: '/products', search: { sort: 'popular' } },
-    { label: 'In Stock',       to: '/products', search: { in_stock: true } },
+    { label: 'New Arrivals',   to: '/products' },
+    { label: 'Best Sellers',   to: '/products' },
+    { label: 'In Stock',       to: '/products' },
   ],
   account: [
     { label: 'Sign In',        to: '/auth/login' },
@@ -30,169 +25,125 @@ const FOOTER_LINKS = {
 }
 
 const SOCIALS = [
-  { icon: <GithubOutlined />,    label: 'GitHub' },
-  { icon: <TwitterOutlined />,   label: 'Twitter' },
-  { icon: <InstagramOutlined />, label: 'Instagram' },
-  { icon: <LinkedinOutlined />,  label: 'LinkedIn' },
+  { icon: <Github className="h-4 w-4" />, label: 'GitHub' },
+  { icon: <Twitter className="h-4 w-4" />, label: 'Twitter' },
+  { icon: <Instagram className="h-4 w-4" />, label: 'Instagram' },
+  { icon: <Linkedin className="h-4 w-4" />, label: 'LinkedIn' },
 ]
 
 export default function Footer() {
   return (
-    <footer
-      style={{
-        background: '#0c1120',
-        color: '#94a3b8',
-        paddingTop: 64,
-        marginTop: 'auto',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-      role="contentinfo"
-    >
-      {/* Decorative gradient orb */}
-      <div style={{
-        position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)',
-        width: 600, height: 200,
-        background: 'radial-gradient(ellipse at center, rgb(99 102 241 / 0.12) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
+    <footer className="bg-slate-950 text-slate-400 mt-auto relative overflow-hidden" role="contentinfo">
+      {/* Decorative glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.12)_0%,transparent_70%)] pointer-events-none" />
 
-      <div className="page-container" style={{ position: 'relative' }}>
-        <Row gutter={[40, 40]}>
-          {/* Brand Column */}
-          <Col xs={24} sm={24} md={7} lg={7}>
-            <Link to="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <span style={{
-                width: 36, height: 36,
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                borderRadius: 10,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 18, boxShadow: '0 4px 12px rgb(99 102 241 / 0.4)',
-              }}>🛍️</span>
-              <span style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.04em' }}>
-                Lara<span style={{ color: '#818cf8' }}>com</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 relative">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+
+          {/* Brand */}
+          <div className="lg:col-span-1">
+            <Link to="/" className="no-underline inline-flex items-center gap-2 mb-4">
+              <span className="w-9 h-9 bg-linear-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-lg shadow-lg shadow-indigo-500/30">🛍️</span>
+              <span className="text-xl font-extrabold text-slate-100 tracking-tight">
+                Lara<span className="text-indigo-400">com</span>
               </span>
             </Link>
-            <Text style={{ color: '#64748b', lineHeight: 1.75, display: 'block', fontSize: 14, maxWidth: 260, marginBottom: 20 }}>
+            <p className="text-sm text-slate-500 leading-relaxed mb-5 max-w-[260px]">
               Your one-stop destination for quality products at unbeatable prices. Shop with confidence.
-            </Text>
+            </p>
 
-            {/* Contact Info */}
-            <Space direction="vertical" size={8} style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                <MailOutlined style={{ color: '#6366f1' }} />
-                <Text style={{ color: '#64748b' }}>support@laracom.io</Text>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                <PhoneOutlined style={{ color: '#6366f1' }} />
-                <Text style={{ color: '#64748b' }}>+1 (800) 123-4567</Text>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                <EnvironmentOutlined style={{ color: '#6366f1' }} />
-                <Text style={{ color: '#64748b' }}>San Francisco, CA 94102</Text>
-              </div>
-            </Space>
+            <div className="space-y-2 text-sm">
+              <a href="mailto:support@laracom.com" className="flex items-center gap-2 text-slate-500 hover:text-indigo-400 transition-colors no-underline">
+                <Mail className="h-3.5 w-3.5 shrink-0" /> support@laracom.com
+              </a>
+              <a href="tel:+15551234567" className="flex items-center gap-2 text-slate-500 hover:text-indigo-400 transition-colors no-underline">
+                <Phone className="h-3.5 w-3.5 shrink-0" /> +1 (555) 123-4567
+              </a>
+              <p className="flex items-center gap-2 text-slate-500 m-0">
+                <MapPin className="h-3.5 w-3.5 shrink-0" /> 123 Commerce St, NY
+              </p>
+            </div>
 
-            {/* Social Icons */}
-            <Space size={8}>
+            <div className="flex gap-2 mt-5">
               {SOCIALS.map(({ icon, label }) => (
-                <Tooltip key={label} title={label}>
-                  <Button
-                    type="text"
-                    aria-label={label}
-                    icon={icon}
-                    style={{
-                      color: '#64748b', background: '#1e2d40',
-                      border: '1px solid #1e3a5f',
-                      borderRadius: 10, width: 36, height: 36,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = '#818cf8'
-                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#6366f1'
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = '#64748b'
-                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#1e3a5f'
-                    }}
-                  />
-                </Tooltip>
+                <button
+                  key={label}
+                  aria-label={label}
+                  className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white flex items-center justify-center transition-colors duration-200 border-0 cursor-pointer"
+                >
+                  {icon}
+                </button>
               ))}
-            </Space>
-          </Col>
+            </div>
+          </div>
 
-          {/* Links Columns */}
-          {([
-            { title: 'Shop',    links: FOOTER_LINKS.shop },
-            { title: 'Account', links: FOOTER_LINKS.account },
-            { title: 'Support', links: FOOTER_LINKS.support },
-          ] as const).map(({ title, links }) => (
-            <Col xs={12} sm={8} md={4} lg={4} key={title}>
-              <Title level={5} style={{ color: '#e2e8f0', marginBottom: 16, fontSize: 14, fontWeight: 700, letterSpacing: '0.02em' }}>
-                {title}
-              </Title>
-              <Space direction="vertical" size={10}>
-                {links.map(({ label, to }) => (
-                  <Link
-                    key={label}
-                    to={to as '/'}
-                    style={{
-                      color: '#64748b', fontSize: 13, fontWeight: 400,
-                      textDecoration: 'none', transition: 'color 0.15s',
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                    }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#a5b4fc')}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#64748b')}
-                  >
+          {/* Shop */}
+          <div>
+            <h4 className="text-slate-200 font-semibold text-sm uppercase tracking-widest mb-4">Shop</h4>
+            <ul className="space-y-2 list-none p-0 m-0">
+              {FOOTER_LINKS.shop.map(({ label, to }) => (
+                <li key={label}>
+                  <Link to={to as '/products'} className="text-sm text-slate-500 hover:text-indigo-400 transition-colors no-underline">
                     {label}
                   </Link>
-                ))}
-              </Space>
-            </Col>
-          ))}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          {/* Newsletter Column */}
-          <Col xs={24} sm={24} md={9} lg={9}>
-            <Title level={5} style={{ color: '#e2e8f0', marginBottom: 8, fontSize: 14, fontWeight: 700 }}>
-              Stay in the loop
-            </Title>
-            <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 1.6, display: 'block', marginBottom: 16 }}>
-              Subscribe to our newsletter for exclusive deals and the latest arrivals.
-            </Text>
-            <Space.Compact style={{ width: '100%', maxWidth: 360 }}>
+          {/* Account */}
+          <div>
+            <h4 className="text-slate-200 font-semibold text-sm uppercase tracking-widest mb-4">Account</h4>
+            <ul className="space-y-2 list-none p-0 m-0">
+              {FOOTER_LINKS.account.map(({ label, to }) => (
+                <li key={label}>
+                  <Link to={to as '/auth/login'} className="text-sm text-slate-500 hover:text-indigo-400 transition-colors no-underline">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Newsletter */}
+          <div>
+            <h4 className="text-slate-200 font-semibold text-sm uppercase tracking-widest mb-4">Newsletter</h4>
+            <p className="text-sm text-slate-500 mb-4 leading-relaxed">
+              Subscribe for exclusive deals, new arrivals, and more.
+            </p>
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => { e.preventDefault() }}
+            >
               <Input
-                placeholder="youremail@example.com"
-                size="large"
-                style={{ background: '#1a2638', borderColor: '#1e3a5f', color: '#e2e8f0' }}
-                aria-label="Email for newsletter"
+                type="email"
+                placeholder="your@email.com"
+                className="bg-slate-800 border-slate-700 text-slate-200 placeholder:text-slate-500 text-sm focus-visible:ring-indigo-500"
               />
-              <Button
-                type="primary"
-                size="large"
-                icon={<ArrowRightOutlined />}
-                aria-label="Subscribe to newsletter"
-              >
-                Subscribe
-              </Button>
-            </Space.Compact>
-            <Text style={{ fontSize: 11, color: '#475569', marginTop: 8, display: 'block' }}>
-              No spam. Unsubscribe anytime.
-            </Text>
-          </Col>
-        </Row>
+              <Button type="submit" size="sm" className="shrink-0">Subscribe</Button>
+            </form>
 
-        <Divider style={{ borderColor: '#1e293b', margin: '40px 0 24px' }} />
+            <div className="mt-6">
+              <h4 className="text-slate-200 font-semibold text-sm uppercase tracking-widest mb-3">Support</h4>
+              <ul className="space-y-2 list-none p-0 m-0">
+                {FOOTER_LINKS.support.map(({ label, to }) => (
+                  <li key={label}>
+                    <Link to={to as '/'} className="text-sm text-slate-500 hover:text-indigo-400 transition-colors no-underline">
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
 
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          flexWrap: 'wrap', gap: 12, paddingBottom: 24,
-        }}>
-          <Text style={{ color: '#475569', fontSize: 13 }}>
-            © {new Date().getFullYear()} Laracom. All rights reserved.
-          </Text>
-          <Text style={{ color: '#475569', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>
-            Crafted with <HeartFilled style={{ color: '#ef4444', fontSize: 12 }} /> using Laravel + React
-          </Text>
+        {/* Bottom bar */}
+        <div className="mt-12 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+          <p className="m-0">© {new Date().getFullYear()} Laracom. All rights reserved.</p>
+          <p className="m-0 flex items-center gap-1">
+            Made with <Heart className="h-3 w-3 fill-red-500 text-red-500" /> by the Laracom team
+          </p>
         </div>
       </div>
     </footer>

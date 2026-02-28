@@ -40,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
       clearAuth: () => {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
+        localStorage.removeItem('session_id')
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isAdmin: false })
       },
 

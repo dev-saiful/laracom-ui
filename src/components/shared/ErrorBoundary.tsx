@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react'
-import { Button, Result } from 'antd'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   children: ReactNode
@@ -30,21 +30,19 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback
 
       return (
-        <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Result
-            status="error"
-            title="Something went wrong"
-            subTitle={
-              import.meta.env.DEV
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="text-5xl">⚠️</div>
+            <h2 className="text-xl font-bold">Something went wrong</h2>
+            <p className="text-muted-foreground text-sm">
+              {import.meta.env.DEV
                 ? this.state.error?.message
-                : 'An unexpected error occurred. Please refresh the page.'
-            }
-            extra={
-              <Button type="primary" onClick={() => this.setState({ hasError: false, error: null })}>
-                Try Again
-              </Button>
-            }
-          />
+                : 'An unexpected error occurred. Please refresh the page.'}
+            </p>
+            <Button onClick={() => this.setState({ hasError: false, error: null })}>
+              Try Again
+            </Button>
+          </div>
         </div>
       )
     }

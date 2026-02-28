@@ -1,137 +1,124 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Form, Input, Button, Card, Typography, Alert } from 'antd'
-import { LockOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { authApi } from '@/api/auth'
-import { App } from 'antd'
-import { z } from 'zod'
+import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/error'
-
-const { Title, Text } = Typography
-
-const searchSchema = z.object({
-  token: z.string().optional().default(''),
-  email: z.string().optional().default(''),
-})
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle, ArrowLeft, Lock } from 'lucide-react'
+import { useState } from 'react'
 
 export const Route = createFileRoute('/auth/reset-password')({
-  validateSearch: searchSchema,
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: (search.token as string) || '',
+    email: (search.email as string) || '',
+  }),
   component: ResetPasswordPage,
 })
 
+const schema = z.object({
+  email: z.string().email(),
+  token: z.string().min(1, 'Reset token is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password_confirmation: z.string(),
+}).refine((d) => d.password === d.password_confirmation, {
+  message: 'Passwords do not match',
+  path: ['password_confirmation'],
+})
+type FormValues = z.infer<typeof schema>
+
 function ResetPasswordPage() {
-  const { message } = App.useApp()
   const navigate = useNavigate()
   const { token, email } = Route.useSearch()
-  const [form] = Form.useForm()
+  const [error, setError] = useState('')
+
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { email, token },
+  })
 
   const mutation = useMutation({
-    mutationFn: (values: { password: string; password_confirmation: string }) =>
+    mutationFn: (values: FormValues) =>
       authApi.resetPassword({
-        email: form.getFieldValue('email') || email,
-        token: form.getFieldValue('token') || token,
+        email: values.email,
+        token: values.token,
         password: values.password,
         password_confirmation: values.password_confirmation,
       }),
     onSuccess: () => {
-      message.success('Password reset successfully! Please log in with your new password.')
+      toast.success('Password reset successfully! Please log in.')
       navigate({ to: '/auth/login' })
     },
-    onError: (err: unknown) => {
-      message.error(getErrorMessage(err, 'Failed to reset password'))
-    },
+    onError: (err: unknown) => setError(getErrorMessage(err, 'Failed to reset password')),
   })
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-      <Card style={{ width: 420, borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', padding: '8px 0' }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>🔒</div>
-          <Title level={2} style={{ margin: 0, background: 'linear-gradient(135deg, #667eea, #764ba2)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Reset Password
-          </Title>
-          <Text type="secondary">Enter your new password below</Text>
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-600 via-purple-600 to-violet-700 px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
+        <div className="text-center mb-7">
+          <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-7 w-7 text-indigo-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 mb-1">Reset Password</h1>
+          <p className="text-slate-500 text-sm">Enter your new password below</p>
         </div>
 
         {!token && (
-          <Alert
-            message="No reset token found"
-            description="Please use the link from your email or enter your token manually below."
-            type="warning"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
+          <Alert className="mb-5 border-amber-200 bg-amber-50 text-amber-800">
+            <AlertDescription>No reset token found. Please use the link from your email or enter it below.</AlertDescription>
+          </Alert>
         )}
 
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{ email, token }}
-          onFinish={mutation.mutate}
-        >
-          <Form.Item
-            name="email"
-            label="Email Address"
-            rules={[{ required: true, type: 'email' }]}
-          >
-            <Input size="large" placeholder="your@email.com" />
-          </Form.Item>
+        {error && (
+          <Alert variant="destructive" className="mb-5">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <form onSubmit={handleSubmit((values) => { setError(''); mutation.mutate(values) })} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="font-semibold text-[13.5px]">Email</Label>
+            <Input id="email" type="email" {...register('email')} className={errors.email ? 'border-red-400' : ''} />
+            {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+          </div>
 
           {!token && (
-            <Form.Item
-              name="token"
-              label="Reset Token"
-              rules={[{ required: true, message: 'Please enter your reset token' }]}
-            >
-              <Input size="large" placeholder="Paste token from email" />
-            </Form.Item>
+            <div className="space-y-1.5">
+              <Label htmlFor="token" className="font-semibold text-[13.5px]">Reset Token</Label>
+              <Input id="token" placeholder="Paste token from email" {...register('token')} className={errors.token ? 'border-red-400' : ''} />
+              {errors.token && <p className="text-xs text-red-500">{errors.token.message}</p>}
+            </div>
           )}
 
-          <Form.Item
-            name="password"
-            label="New Password"
-            rules={[{ required: true, min: 8, message: 'Password must be at least 8 characters' }]}
-          >
-            <Input.Password prefix={<LockOutlined />} size="large" placeholder="New password (min 8 chars)" />
-          </Form.Item>
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="font-semibold text-[13.5px]">New Password</Label>
+            <Input id="password" type="password" placeholder="Min. 8 characters" {...register('password')} className={errors.password ? 'border-red-400' : ''} />
+            {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+          </div>
 
-          <Form.Item
-            name="password_confirmation"
-            label="Confirm New Password"
-            dependencies={['password']}
-            rules={[
-              { required: true, message: 'Please confirm your password' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('password') === value) return Promise.resolve()
-                  return Promise.reject(new Error('Passwords do not match'))
-                },
-              }),
-            ]}
-          >
-            <Input.Password prefix={<LockOutlined />} size="large" placeholder="Confirm new password" />
-          </Form.Item>
+          <div className="space-y-1.5">
+            <Label htmlFor="password_confirmation" className="font-semibold text-[13.5px]">Confirm Password</Label>
+            <Input id="password_confirmation" type="password" placeholder="Repeat password" {...register('password_confirmation')} className={errors.password_confirmation ? 'border-red-400' : ''} />
+            {errors.password_confirmation && <p className="text-xs text-red-500">{errors.password_confirmation.message}</p>}
+          </div>
 
-          <Form.Item style={{ marginBottom: 8 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              size="large"
-              block
-              loading={mutation.isPending}
-              style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', border: 'none' }}
-            >
-              Reset Password
-            </Button>
-          </Form.Item>
-        </Form>
+          <Button type="submit" className="w-full" disabled={mutation.isPending}>
+            {mutation.isPending ? 'Resetting…' : 'Reset Password'}
+          </Button>
+        </form>
 
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <Link to="/auth/login">
-            <Button type="link" icon={<ArrowLeftOutlined />}>Back to Login</Button>
+        <div className="text-center mt-5">
+          <Link to="/auth/login" className="text-sm text-indigo-600 font-medium no-underline hover:underline flex items-center justify-center gap-1">
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to Login
           </Link>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
