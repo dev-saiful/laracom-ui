@@ -260,7 +260,7 @@ export default function AdminLayout() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/account" className="cursor-pointer no-underline flex items-center gap-2">
+                  <Link to="/admin/settings" className="cursor-pointer no-underline flex items-center gap-2">
                     <Settings className="h-4 w-4" /> Account Settings
                   </Link>
                 </DropdownMenuItem>

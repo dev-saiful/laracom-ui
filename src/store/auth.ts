@@ -1,11 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { User } from '@/types'
+import { setAuthCookies, clearAuthCookies, clearSessionId } from '@/lib/cookies'
 
 interface AuthState {
   user: User | null
-  accessToken: string | null
-  refreshToken: string | null
   isAuthenticated: boolean
   isAdmin: boolean
   setAuth: (user: User, accessToken: string, refreshToken: string) => void
@@ -17,49 +16,37 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
       isAdmin: false,
 
       setAuth: (user, accessToken, refreshToken) => {
-        localStorage.setItem('access_token', accessToken)
-        localStorage.setItem('refresh_token', refreshToken)
-        // Clear the guest session_id — the backend has merged the guest cart into
-        // the user's cart during login (CartService::mergeGuestCart).
-        localStorage.removeItem('session_id')
+        // Store tokens in secure cookies; clear the guest session cookie
+        setAuthCookies(accessToken, refreshToken)
+        clearSessionId()
         set({
           user,
-          accessToken,
-          refreshToken,
           isAuthenticated: true,
           isAdmin: user.role === 'admin',
         })
       },
 
       clearAuth: () => {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('session_id')
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isAdmin: false })
+        // Remove tokens and guest session from cookies
+        clearAuthCookies()
+        clearSessionId()
+        set({ user: null, isAuthenticated: false, isAdmin: false })
       },
 
       setUser: (user) => set({ user, isAdmin: user.role === 'admin' }),
     }),
     {
       name: 'laracom-auth',
+      // Only persist non-sensitive UI state — tokens live in cookies
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         isAdmin: state.isAdmin,
       }),
     },
   ),
 )
-
-// Ensure localStorage tokens stay in sync on hydration
-const { accessToken, refreshToken } = useAuthStore.getState()
-if (accessToken) localStorage.setItem('access_token', accessToken)
-if (refreshToken) localStorage.setItem('refresh_token', refreshToken)

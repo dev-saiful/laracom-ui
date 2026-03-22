@@ -25,6 +25,7 @@ import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AdminLayoutIndexRouteImport } from './routes/admin/_layout/index'
 import { Route as AppProductsIndexRouteImport } from './routes/_app/products/index'
 import { Route as AppOrdersIndexRouteImport } from './routes/_app/orders/index'
+import { Route as AdminLayoutSettingsRouteImport } from './routes/admin/_layout/settings'
 import { Route as AppProductsSlugRouteImport } from './routes/_app/products/$slug'
 import { Route as AppOrdersIdRouteImport } from './routes/_app/orders/$id'
 import { Route as AdminLayoutUsersIndexRouteImport } from './routes/admin/_layout/users/index'
@@ -114,6 +115,11 @@ const AppOrdersIndexRoute = AppOrdersIndexRouteImport.update({
   path: '/orders/',
   getParentRoute: () => AppRoute,
 } as any)
+const AdminLayoutSettingsRoute = AdminLayoutSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
 const AppProductsSlugRoute = AppProductsSlugRouteImport.update({
   id: '/products/$slug',
   path: '/products/$slug',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/auth/verify-otp': typeof AuthVerifyOtpRoute
   '/orders/$id': typeof AppOrdersIdRoute
   '/products/$slug': typeof AppProductsSlugRoute
+  '/admin/settings': typeof AdminLayoutSettingsRoute
   '/orders/': typeof AppOrdersIndexRoute
   '/products/': typeof AppProductsIndexRoute
   '/admin/': typeof AdminLayoutIndexRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/orders/$id': typeof AppOrdersIdRoute
   '/products/$slug': typeof AppProductsSlugRoute
+  '/admin/settings': typeof AdminLayoutSettingsRoute
   '/orders': typeof AppOrdersIndexRoute
   '/products': typeof AppProductsIndexRoute
   '/admin': typeof AdminLayoutIndexRoute
@@ -231,6 +239,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/orders/$id': typeof AppOrdersIdRoute
   '/_app/products/$slug': typeof AppProductsSlugRoute
+  '/admin/_layout/settings': typeof AdminLayoutSettingsRoute
   '/_app/orders/': typeof AppOrdersIndexRoute
   '/_app/products/': typeof AppProductsIndexRoute
   '/admin/_layout/': typeof AdminLayoutIndexRoute
@@ -259,6 +268,7 @@ export interface FileRouteTypes {
     | '/auth/verify-otp'
     | '/orders/$id'
     | '/products/$slug'
+    | '/admin/settings'
     | '/orders/'
     | '/products/'
     | '/admin/'
@@ -284,6 +294,7 @@ export interface FileRouteTypes {
     | '/'
     | '/orders/$id'
     | '/products/$slug'
+    | '/admin/settings'
     | '/orders'
     | '/products'
     | '/admin'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/orders/$id'
     | '/_app/products/$slug'
+    | '/admin/_layout/settings'
     | '/_app/orders/'
     | '/_app/products/'
     | '/admin/_layout/'
@@ -447,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOrdersIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/admin/_layout/settings': {
+      id: '/admin/_layout/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminLayoutSettingsRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
     '/_app/products/$slug': {
       id: '/_app/products/$slug'
       path: '/products/$slug'
@@ -542,6 +561,7 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AdminLayoutRouteChildren {
+  AdminLayoutSettingsRoute: typeof AdminLayoutSettingsRoute
   AdminLayoutIndexRoute: typeof AdminLayoutIndexRoute
   AdminLayoutOrdersIdRoute: typeof AdminLayoutOrdersIdRoute
   AdminLayoutProductsIdRoute: typeof AdminLayoutProductsIdRoute
@@ -553,6 +573,7 @@ interface AdminLayoutRouteChildren {
 }
 
 const AdminLayoutRouteChildren: AdminLayoutRouteChildren = {
+  AdminLayoutSettingsRoute: AdminLayoutSettingsRoute,
   AdminLayoutIndexRoute: AdminLayoutIndexRoute,
   AdminLayoutOrdersIdRoute: AdminLayoutOrdersIdRoute,
   AdminLayoutProductsIdRoute: AdminLayoutProductsIdRoute,

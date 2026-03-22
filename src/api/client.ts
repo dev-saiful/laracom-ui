@@ -1,21 +1,14 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { getErrorMessage } from '@/lib/error'
+import {
+  getAccessToken,
+  getRefreshToken,
+  setAuthCookies,
+  clearAuthCookies,
+  getOrCreateSessionId,
+} from '@/lib/cookies'
 
 const BASE_URL = '/api'
-
-/**
- * Ensure a stable guest session ID exists in localStorage.
- * This is sent as X-Session-ID on every request so the backend can
- * associate guest carts before the user logs in.
- */
-function getOrCreateSessionId(): string {
-  let id = localStorage.getItem('session_id')
-  if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem('session_id', id)
-  }
-  return id
-}
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -23,19 +16,22 @@ export const apiClient = axios.create({
   timeout: 15000,
 })
 
-// ─── Request interceptor: attach access token ─────────────────────────────────
+// ─── Request interceptor ───────────────────────────────────────────────────
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem('access_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  const token = getAccessToken()
 
-  // Always send guest session ID — backend ignores it when JWT is present
-  const sessionId = getOrCreateSessionId()
-  config.headers['X-Session-ID'] = sessionId
+  if (token) {
+    // Authenticated request — attach Bearer token; no session header needed
+    config.headers.Authorization = `Bearer ${token}`
+  } else {
+    // Guest request — attach session ID so the backend can track the guest cart
+    config.headers['X-Session-ID'] = getOrCreateSessionId()
+  }
 
   return config
 })
 
-// ─── Response interceptor: auto-refresh on 401 ────────────────────────────────
+// ─── Response interceptor: auto-refresh on 401 ────────────────────────────
 let isRefreshing = false
 let failedQueue: Array<{ resolve: (v: string) => void; reject: (e: unknown) => void }> = []
 
@@ -50,14 +46,15 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
     const status = error.response?.status
 
-    // ── Auto-refresh on 401 ─────────────────────────────────────────────────
+    // ── Auto-refresh on 401 ───────────────────────────────────────────────
     if (status === 401 && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem('refresh_token')
+      const refreshToken = getRefreshToken()
 
       if (!refreshToken) {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('laracom-auth')
+        clearAuthCookies()
+        // Lazily import to avoid circular dependency
+        const { useAuthStore } = await import('@/store/auth')
+        useAuthStore.getState().clearAuth()
         window.location.href = '/auth/login'
         return Promise.reject(error)
       }
@@ -75,19 +72,20 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh-token`, { refresh_token: refreshToken })
-        const newToken = data.data.access_token
-        localStorage.setItem('access_token', newToken)
-        localStorage.setItem('refresh_token', data.data.refresh_token)
-        processQueue(null, newToken)
-        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        const { data } = await axios.post(`${BASE_URL}/auth/refresh-token`, {
+          refresh_token: refreshToken,
+        })
+        const newAccessToken: string = data.data.access_token
+        const newRefreshToken: string = data.data.refresh_token
+        setAuthCookies(newAccessToken, newRefreshToken)
+        processQueue(null, newAccessToken)
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
         return apiClient(originalRequest)
       } catch (err) {
         processQueue(err, null)
-        // Targeted auth-only clear — do NOT wipe all localStorage
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('laracom-auth')
+        clearAuthCookies()
+        const { useAuthStore } = await import('@/store/auth')
+        useAuthStore.getState().clearAuth()
         window.location.href = '/auth/login'
         return Promise.reject(err)
       } finally {
@@ -95,29 +93,25 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // ── Global error notifications for common statuses ──────────────────────
-    // 403 — forbidden
+    // ── Global error notifications ────────────────────────────────────────
     if (status === 403) {
       window.dispatchEvent(new CustomEvent('api:error', {
         detail: { message: getErrorMessage(error, 'You do not have permission to do that.'), status },
       }))
     }
 
-    // 429 — rate limited
     if (status === 429) {
       window.dispatchEvent(new CustomEvent('api:error', {
         detail: { message: getErrorMessage(error, 'Too many requests. Please slow down.'), status },
       }))
     }
 
-    // 500+ — server errors
     if (status && status >= 500) {
       window.dispatchEvent(new CustomEvent('api:error', {
         detail: { message: getErrorMessage(error, 'A server error occurred. Please try again later.'), status },
       }))
     }
 
-    // Network / timeout (no response)
     if (!error.response) {
       window.dispatchEvent(new CustomEvent('api:error', {
         detail: { message: getErrorMessage(error), status: 0 },

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus, Search, Copy, Pencil, Trash2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Copy, Pencil, Trash2, Loader2, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@/api/admin'
 import { toast } from 'sonner'

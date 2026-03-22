@@ -46,6 +46,7 @@ export default function Navbar() {
     queryKey: ['cart-count'],
     queryFn: () => cartApi.count().then((r) => r.data.data.count),
     staleTime: 5 * 60 * 1000,
+    gcTime: 0,           // drop from cache immediately when unmounted
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   })
@@ -54,6 +55,7 @@ export default function Navbar() {
     queryKey: ['wishlist-count'],
     queryFn: () => wishlistApi.count().then((r) => r.data.data.count),
     staleTime: 5 * 60 * 1000,
+    gcTime: 0,           // clear immediately on logout so badge resets
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     enabled: isAuthenticated,
@@ -197,7 +199,10 @@ export default function Navbar() {
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem asChild>
-                      <Link to="/account" className="flex items-center gap-2 cursor-pointer">
+                      <Link
+                        to={isAdmin ? '/admin/settings' : '/account'}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
                         <Settings className="h-4 w-4" />My Account
                       </Link>
                     </DropdownMenuItem>
@@ -303,12 +308,14 @@ export default function Navbar() {
                           </Button>
                         </Link>
                       )}
-                      <Link to="/orders" search={{ page: 1 }} onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
-                        <Button variant="outline" className="w-full justify-start gap-2 text-sm">
-                          <ListOrdered className="h-4 w-4" />My Orders
-                        </Button>
-                      </Link>
-                      <Link to="/account" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                      {!isAdmin && (
+                        <Link to="/orders" search={{ page: 1 }} onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                          <Button variant="outline" className="w-full justify-start gap-2 text-sm">
+                            <ListOrdered className="h-4 w-4" />My Orders
+                          </Button>
+                        </Link>
+                      )}
+                      <Link to={isAdmin ? '/admin/settings' : '/account'} onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
                         <Button variant="outline" className="w-full justify-start gap-2 text-sm">
                           <Settings className="h-4 w-4" />Account Settings
                         </Button>

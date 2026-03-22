@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useForm } from 'react-hook-form'
 import { User, Lock, ShoppingBag, Eye } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { authApi } from '@/api/auth'
 import { ordersApi } from '@/api/orders'
 import { useAuthStore } from '@/store/auth'
@@ -24,8 +24,7 @@ interface ProfileValues { name: string; phone?: string }
 interface PasswordValues { current_password: string; password: string; password_confirmation: string }
 
 function AccountPage() {
-  const queryClient = useQueryClient()
-  const { user, setAuth, isAuthenticated } = useAuthStore()
+  const { user, setUser, isAuthenticated } = useAuthStore()
 
   const profileForm = useForm<ProfileValues>({ defaultValues: { name: user?.name ?? '', phone: user?.phone ?? '' } })
   const passwordForm = useForm<PasswordValues>()
@@ -39,9 +38,8 @@ function AccountPage() {
   const updateProfileMutation = useMutation({
     mutationFn: (values: ProfileValues) => authApi.updateProfile({ name: values.name, phone: values.phone }),
     onSuccess: (res) => {
-      const stored = useAuthStore.getState()
-      setAuth(res.data.data!, stored.accessToken!, stored.refreshToken!)
-      queryClient.invalidateQueries({ queryKey: ['me'] })
+      // Update the Zustand user object; tokens remain untouched in cookies
+      setUser(res.data.data!)
       toast.success('Profile updated successfully')
     },
     onError: (err: unknown) => toast.error(getErrorMessage(err, 'Failed to update profile')),
